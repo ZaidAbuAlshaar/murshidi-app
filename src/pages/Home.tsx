@@ -1,0 +1,207 @@
+import { useNavigate } from 'react-router-dom';
+import {
+  Calculator, BarChart3, Sparkles, Brain, Users, MessageCircle,
+  TrendingUp, GraduationCap, Wallet, ChevronLeft, ChevronRight, FileText,
+} from 'lucide-react';
+import OfficialHeader from '../components/OfficialHeader';
+import { jobMarketTrends, nationalStats } from '../data/majors';
+import { useLang } from '../i18n/LangContext';
+import type { TranslationKey } from '../i18n/translations';
+
+interface Service {
+  to: string;
+  icon: typeof Calculator;
+  titleKey: TranslationKey;
+  descKey: TranslationKey;
+}
+
+const services: Service[] = [
+  { to: '/roi',           icon: Calculator,    titleKey: 'service.calculator.title',    descKey: 'service.calculator.desc' },
+  { to: '/compare',       icon: BarChart3,     titleKey: 'service.compare.title',       descKey: 'service.compare.desc' },
+  { to: '/simulate',      icon: Sparkles,      titleKey: 'service.simulate.title',      descKey: 'service.simulate.desc' },
+  { to: '/personality',   icon: Brain,         titleKey: 'service.personality.title',   descKey: 'service.personality.desc' },
+  { to: '/stories',       icon: Users,         titleKey: 'service.stories.title',       descKey: 'service.stories.desc' },
+  { to: '/future',        icon: TrendingUp,    titleKey: 'service.future.title',        descKey: 'service.future.desc' },
+  { to: '/scholarships',  icon: Wallet,        titleKey: 'service.scholarships.title',  descKey: 'service.scholarships.desc' },
+  { to: '/alternatives',  icon: GraduationCap, titleKey: 'service.alternatives.title',  descKey: 'service.alternatives.desc' },
+];
+
+export default function Home() {
+  const navigate = useNavigate();
+  const { t, lang, dir } = useLang();
+  const ChevronEnd = dir === 'rtl' ? ChevronLeft : ChevronRight;
+
+  return (
+    <div className="min-h-screen bg-gov-bg pb-28">
+      <OfficialHeader />
+
+      {/* Welcome bar */}
+      <div className="bg-white border-b border-gov-line px-4 py-3">
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-[11px] text-gov-muted">{t('pages.home.welcome')}</p>
+          <span className="text-[10px] text-gov-muted tabular">
+            {new Date().toLocaleDateString(lang === 'ar' ? 'ar-JO' : 'en-US', {
+              weekday: 'long', day: 'numeric', month: 'long',
+            })}
+          </span>
+        </div>
+        <p className="text-base font-bold text-gov-ink leading-tight">
+          {lang === 'ar' ? 'عبد الرحمن الحيموني' : 'Abdulrahman Alhaymouni'}
+        </p>
+        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+          <span className="gov-badge gov-badge-info">{t('pages.home.studentLabel')}</span>
+          <span className="gov-badge gov-badge-neutral">{lang === 'ar' ? 'عمّان' : 'Amman'}</span>
+          <span className="gov-badge gov-badge-neutral">{t('profile.gradeLabel')}: 87</span>
+        </div>
+      </div>
+
+      {/* Primary CTA */}
+      <div className="p-4">
+        <button
+          onClick={() => navigate('/roi')}
+          className="w-full text-start gov-card-interactive p-4"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-lg bg-gov-navy flex items-center justify-center text-white shrink-0">
+              <Calculator size={20} strokeWidth={2.2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                <h3 className="text-sm font-bold text-gov-ink">{t('pages.home.startCalc')}</h3>
+                <span className="gov-badge gov-badge-success">{t('pages.home.recommended')}</span>
+              </div>
+              <p className="text-xs text-gov-muted leading-relaxed">{t('pages.home.startCalcDesc')}</p>
+              <span className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-gov-navy">
+                {t('btn.openCalculator')}
+                <ChevronEnd size={14} />
+              </span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Services list */}
+      <div className="px-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="gov-section-title">{t('pages.home.servicesTitle')}</h3>
+          <span className="text-[11px] text-gov-muted tabular">{services.length}</span>
+        </div>
+
+        <div className="gov-card divide-y divide-gov-line overflow-hidden">
+          {services.map((s) => (
+            <button
+              key={s.to}
+              onClick={() => navigate(s.to)}
+              className="w-full px-4 py-3.5 flex items-center gap-3 hover:bg-gov-bg-soft active:bg-gov-bg text-start transition-colors"
+            >
+              <div className="w-10 h-10 rounded-lg bg-gov-bg flex items-center justify-center text-gov-navy shrink-0">
+                <s.icon size={17} strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gov-ink leading-tight">{t(s.titleKey)}</p>
+                <p className="text-[11px] text-gov-muted mt-0.5 leading-snug">{t(s.descKey)}</p>
+              </div>
+              <ChevronEnd size={16} className="text-gov-muted shrink-0" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Live market */}
+      <div className="px-4 mt-5">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="gov-section-title">{t('pages.home.topJobsTitle')}</h3>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-gov-ok/10 text-[9px] font-bold text-gov-ok">
+              <span className="w-1 h-1 rounded-full bg-gov-ok" />
+              {t('pages.home.live')}
+            </span>
+          </div>
+          <button onClick={() => navigate('/market')} className="text-[11px] text-gov-navy font-semibold hover:underline">
+            {t('btn.viewAll')}
+          </button>
+        </div>
+
+        <div className="gov-card overflow-hidden">
+          <table className="gov-table">
+            <thead>
+              <tr>
+                <th className="w-8">#</th>
+                <th>{lang === 'ar' ? 'المهنة' : 'Occupation'}</th>
+                <th className="text-end">{lang === 'ar' ? 'الإعلانات' : 'Postings'}</th>
+                <th className="text-end w-16">{lang === 'ar' ? 'التغيّر' : 'Change'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobMarketTrends.topHiring.slice(0, 5).map((job, i) => (
+                <tr key={job.name}>
+                  <td className="text-gov-muted tabular">{i + 1}</td>
+                  <td className="font-medium text-gov-ink">{job.name}</td>
+                  <td className="text-end tabular">{job.count.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}</td>
+                  <td className={`text-end tabular font-semibold ${job.change >= 0 ? 'text-gov-ok' : 'text-gov-danger'}`}>
+                    {job.change > 0 ? '+' : ''}{job.change}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="px-3 py-2 bg-gov-bg-soft border-t border-gov-line text-[10px] text-gov-muted leading-relaxed">
+            {lang === 'ar'
+              ? `المصدر: تجميع آلي من Akhtaboot, Bayt, LinkedIn Jordan — ${new Date().toLocaleDateString('ar-JO')}`
+              : `Source: Auto-aggregated from Akhtaboot, Bayt, LinkedIn Jordan — ${new Date().toLocaleDateString('en-US')}`}
+          </div>
+        </div>
+      </div>
+
+      {/* National impact */}
+      <div className="px-4 mt-5">
+        <h3 className="gov-section-title mb-2">{t('pages.home.nationalIndicators')}</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <Stat label={t('stat.studentsHelped')} value={nationalStats.studentsHelped.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} />
+          <Stat label={t('stat.jobsAnalyzed')} value={nationalStats.jobsScraped.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} />
+          <Stat label={t('stat.unemployment')} value={`${nationalStats.graduateUnemployment}%`} hint="DOS 2024" warn />
+          <Stat label={t('stat.nationalCost')} value={lang === 'ar' ? '280 م.د' : '280M JOD'} hint={lang === 'ar' ? 'تحليل مرشدي' : 'Murshidi analysis'} />
+        </div>
+      </div>
+
+      {/* Counsellor CTA */}
+      <div className="px-4 mt-5">
+        <button
+          onClick={() => navigate('/chat')}
+          className="w-full gov-card-interactive p-4 text-start"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-lg bg-gov-green/10 flex items-center justify-center text-gov-green shrink-0">
+              <MessageCircle size={20} strokeWidth={2.2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gov-ink">{t('pages.home.consultation')}</p>
+              <p className="text-[11px] text-gov-muted mt-0.5">{t('pages.home.consultationDesc')}</p>
+            </div>
+            <ChevronEnd size={16} className="text-gov-muted" />
+          </div>
+        </button>
+      </div>
+
+      {/* Disclaimer */}
+      <div className="px-4 mt-5">
+        <div className="bg-gov-bg-soft border border-gov-line rounded-lg p-3 flex items-start gap-2">
+          <FileText size={14} className="text-gov-muted shrink-0 mt-0.5" />
+          <p className="text-[11px] text-gov-muted leading-relaxed">{t('pages.home.disclaimer')}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, hint, warn }: { label: string; value: string; hint?: string; warn?: boolean }) {
+  return (
+    <div className="gov-card p-3">
+      <p className="text-[11px] text-gov-muted leading-tight">{label}</p>
+      <p className={`text-lg font-bold tabular mt-1 leading-none ${warn ? 'text-gov-danger' : 'text-gov-ink'}`}>
+        {value}
+      </p>
+      {hint && <p className="text-[10px] text-gov-muted mt-1.5">{hint}</p>}
+    </div>
+  );
+}
