@@ -4,7 +4,7 @@ import {
   TrendingUp, GraduationCap, Wallet, ChevronLeft, ChevronRight, FileText,
 } from 'lucide-react';
 import OfficialHeader from '../components/OfficialHeader';
-import { jobMarketTrends, nationalStats } from '../data/majors';
+import { jobMarketTrends, majorsData, nationalStats } from '../data/majors';
 import { useLang } from '../i18n/LangContext';
 import type { TranslationKey } from '../i18n/translations';
 import { getSessionUser } from '../lib/account';
@@ -62,42 +62,56 @@ export default function Home() {
 
       {/* Hero hook */}
       <div className="p-4">
-        <div className="relative overflow-hidden rounded-2xl bg-gov-navy text-white">
-          <div className="pointer-events-none absolute -top-16 -start-16 w-48 h-48 rounded-full bg-white/10" />
-          <div className="pointer-events-none absolute -bottom-20 -end-10 w-56 h-56 rounded-full bg-gov-gold/20" />
-          <div className="relative p-5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gov-gold/15 text-gov-gold text-[11px] font-bold">
-              <Sparkles size={12} />
-              {lang === 'ar' ? 'قرار واحد… يحدد مستقبلك' : 'One decision… shapes your future'}
-            </span>
-            <h2 className="text-xl font-bold leading-snug mt-3">
+        <div className="gov-card overflow-hidden">
+          <div className="h-[3px] bg-gov-gold" />
+          <div className="p-4">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold text-gov-navy">
+              <span className="w-1.5 h-1.5 bg-gov-gold shrink-0" />
+              {lang === 'ar' ? 'دليلك لاختيار التخصّص الجامعي' : 'Your guide to choosing a major'}
+            </p>
+            <h2 className="text-[22px] font-bold text-gov-ink leading-snug mt-2">
               {lang === 'ar' ? 'تخصّصك الغلط بيكلّفك 10 سنين' : 'A wrong major costs you 10 years'}
             </h2>
-            <p className="text-[13px] text-white/80 leading-relaxed mt-1.5">
+            <p className="text-[13px] text-gov-body leading-relaxed mt-1.5">
               {lang === 'ar'
-                ? 'مُرشِدي يحسب لك العائد الحقيقي لكلّ تخصّص من معدّلك وبيانات سوق العمل الأردني — قبل ما تختار.'
-                : 'Murshidi computes the real return of every major from your GPA and Jordanian labour data — before you choose.'}
+                ? 'قارن التخصّصات بأرقام البطالة والرواتب الحقيقيّة قبل ما تختار — القرار بالأرقام مش بالتخمين.'
+                : 'Compare majors by real unemployment and salary figures before you choose — decide by data, not guessing.'}
             </p>
-            <div className="flex items-center gap-4 mt-3 text-[11px] text-white/70">
-              <span className="inline-flex items-center gap-1"><BarChart3 size={12} />{lang === 'ar' ? '12 تخصّصًا بالأرقام' : '12 majors in numbers'}</span>
-              <span className="inline-flex items-center gap-1"><TrendingUp size={12} />{lang === 'ar' ? 'بيانات DOS 2026' : 'DOS 2026 data'}</span>
+
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <HeroStat
+                value={String(majorsData.length)}
+                label={lang === 'ar' ? 'تخصّصًا بالأرقام' : 'majors in numbers'}
+              />
+              <HeroStat
+                value={nationalStats.jobsScraped.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}
+                label={lang === 'ar' ? 'إعلان وظيفي محلّل' : 'job ads analysed'}
+              />
+              <HeroStat
+                value={`+${jobMarketTrends.topHiring[0].change}%`}
+                label={jobMarketTrends.topHiring[0].name}
+              />
             </div>
-            <div className="flex items-center gap-2 mt-4">
-              <button
-                onClick={() => navigate('/roi')}
-                className="flex-1 min-h-[46px] px-4 rounded-xl bg-gov-gold text-gov-navy text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
-              >
-                <Calculator size={17} strokeWidth={2.4} />
-                {t('btn.openCalculator')}
-              </button>
-              <button
-                onClick={() => navigate('/personality')}
-                aria-label={lang === 'ar' ? 'اختبر ميولك' : 'Test your interests'}
-                className="min-h-[46px] min-w-[46px] px-3 rounded-xl border border-white/25 text-white flex items-center justify-center active:scale-[0.99] transition-transform"
-              >
-                <Brain size={18} />
-              </button>
-            </div>
+
+            <button
+              onClick={() => navigate('/roi')}
+              className="btn-primary w-full mt-4"
+            >
+              <Calculator size={17} strokeWidth={2.4} />
+              {t('btn.openCalculator')}
+            </button>
+            <button
+              onClick={() => navigate('/personality')}
+              className="w-full mt-2 py-2 text-[13px] font-semibold text-gov-navy hover:underline"
+            >
+              {lang === 'ar' ? 'أو اختبر ميولك أولاً' : 'Or test your interests first'}
+            </button>
+
+            <p className="text-[10px] text-gov-muted mt-2 pt-2 border-t border-gov-line leading-relaxed">
+              {lang === 'ar'
+                ? 'المصادر: DOS Q1 2026 · معدّلات القبول الموحّدة 2025'
+                : 'Sources: DOS Q1 2026 · Unified admission rates 2025'}
+            </p>
           </div>
         </div>
       </div>
@@ -212,6 +226,15 @@ export default function Home() {
           <p className="text-[11px] text-gov-muted leading-relaxed">{t('pages.home.disclaimer')}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function HeroStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-gov-bg-soft border border-gov-line rounded-lg px-2 py-2.5 text-center">
+      <p className="text-base font-bold tabular text-gov-navy leading-none">{value}</p>
+      <p className="text-[10px] text-gov-muted mt-1.5 leading-tight">{label}</p>
     </div>
   );
 }

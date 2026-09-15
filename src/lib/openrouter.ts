@@ -1,6 +1,30 @@
 export const OPENROUTER_DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free';
 export const OPENROUTER_FALLBACK_MODEL = 'google/gemma-4-31b-it:free';
 
+// ─── مفتاح OpenRouter المضمّن (إعدادات الفريق) ───
+// الصق مفتاحك المجاني من openrouter.ai/keys هنا ليشتغل الوضع الذكي
+// تلقائياً دون أن يُدخل المستخدم أي شيء.
+// تنبيه أمني: هذا المفتاح يظهر داخل حزمة التطبيق، لذلك:
+//  - ضع له حدّ ائتمان $0 من لوحة OpenRouter
+//  - التطبيق يستدعي فقط النماذج المجانيّة (‎:free) فلا يستهلك رصيداً
+export const OPENROUTER_BUILTIN_KEY = '';
+
+const OVERRIDE_STORAGE = 'murshidi.or.key';
+
+export function getApiKey(): string {
+  try {
+    const override = localStorage.getItem(OVERRIDE_STORAGE)?.trim();
+    if (override) return override;
+  } catch {
+    /* storage is optional */
+  }
+  return OPENROUTER_BUILTIN_KEY.trim();
+}
+
+export function hasBuiltinKey(): boolean {
+  return OPENROUTER_BUILTIN_KEY.trim().length > 0;
+}
+
 const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 
 export const AI_SYSTEM_PROMPT =

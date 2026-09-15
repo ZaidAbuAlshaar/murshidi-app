@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, MessageSquare, FileText, KeyRound, Sparkles, ChevronDown } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import { useKeyboardOpen } from '../hooks/useKeyboardOpen';
-import { askOpenRouter, OPENROUTER_DEFAULT_MODEL } from '../lib/openrouter';
+import { askOpenRouter, OPENROUTER_DEFAULT_MODEL, getApiKey, hasBuiltinKey } from '../lib/openrouter';
 
 interface Msg { role: 'user' | 'ai'; text: string; time: string; }
 
@@ -56,9 +56,11 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [apiKey, setApiKey] = useState(() => {
+  // تجاوز يدوي اختياري — الوضع الذكي يعمل تلقائياً بالمفتاح المضمّن
+  const [keyOverride, setKeyOverride] = useState(() => {
     try { return localStorage.getItem(KEY_STORAGE) || ''; } catch { return ''; }
   });
+  const effectiveKey = keyOverride.trim() || getApiKey();
   const [model, setModel] = useState(() => {
     try { return localStorage.getItem(MODEL_STORAGE) || OPENROUTER_DEFAULT_MODEL; } catch { return OPENROUTER_DEFAULT_MODEL; }
   });
@@ -71,7 +73,7 @@ export default function Chat() {
   }, [messages, typing]);
 
   const saveKey = (value: string) => {
-    setApiKey(value);
+    setKeyOverride(value);
     try {
       if (value.trim()) localStorage.setItem(KEY_STORAGE, value.trim());
       else localStorage.removeItem(KEY_STORAGE);
@@ -90,7 +92,7 @@ export default function Chat() {
     setMessages((m) => [...m, { role: 'user', text: question, time: now() }]);
     setInput('');
     setAiError(null);
-    const key = apiKey.trim();
+    const key = effectiveKey;
     if (!key) {
       setTyping(true);
       setTimeout(() => {
@@ -131,29 +133,29 @@ export default function Chat() {
             className="w-full flex items-center gap-2 text-start"
             aria-expanded={showKey}
           >
-            <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${apiKey.trim() ? 'bg-gov-green/10 text-gov-green' : 'bg-gov-bg text-gov-navy'}`}>
-              {apiKey.trim() ? <Sparkles size={15} /> : <KeyRound size={15} />}
+            <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${effectiveKey ? 'bg-gov-green/10 text-gov-green' : 'bg-gov-bg text-gov-navy'}`}>
+              {effectiveKey ? <Sparkles size={15} /> : <KeyRound size={15} />}
             </span>
             <span className="flex-1 min-w-0">
               <span className="block text-xs font-bold text-gov-ink">
-                {apiKey.trim() ? 'الوضع الذكي مفعّل (Gemma مجاني)' : 'تفعيل الوضع الذكي (مجاني)'}
+                {effectiveKey ? 'الوضع الذكي مفعّل (Gemma مجاني)' : 'الوضع المحلي (بدون إنترنت)'}
               </span>
               <span className="block text-[10px] text-gov-muted mt-0.5">
-                {apiKey.trim() ? 'إجابات حيّة من OpenRouter' : 'بدون مفتاح: إجابات محليّة جاهزة'}
+                {effectiveKey ? 'إجابات حيّة من OpenRouter' : 'إجابات محليّة جاهزة'}
               </span>
             </span>
             <ChevronDown size={15} className={`text-gov-muted transition-transform ${showKey ? 'rotate-180' : ''}`} />
           </button>
           {showKey && (
             <div className="mt-3 pt-3 border-t border-gov-line space-y-2">
-              <label className="gov-label" htmlFor="or-key">مفتاح OpenRouter (يُحفظ على جهازك فقط)</label>
+              <label className="gov-label" htmlFor="or-key">مفتاح بديل (اختياري — اتركه فارغاً لاستخدام مفتاح التطبيق)</label>
               <input
                 id="or-key"
                 type="password"
                 dir="ltr"
                 autoComplete="off"
-                placeholder="sk-or-v1-…"
-                value={apiKey}
+                placeholder={hasBuiltinKey() ? 'مفتاح التطبيق مفعّل ✓' : 'sk-or-v1-…'}
+                value={keyOverride}
                 onChange={(e) => saveKey(e.target.value)}
                 className="gov-input text-left"
               />
@@ -164,7 +166,9 @@ export default function Chat() {
                 ))}
               </select>
               <p className="text-[10px] text-gov-muted leading-relaxed">
-                احصل على مفتاح مجاني من openrouter.ai/keys (بدون بطاقة) والصقه هنا. الحدّ المجاني ~50 طلبًا/يوم.
+                {hasBuiltinKey()
+                  ? 'الوضع الذكي يعمل تلقائياً بمفتاح التطبيق. الحدّ المجاني ~50 طلبًا/يوم.'
+                  : 'احصل على مفتاح مجاني من openrouter.ai/keys (بدون بطاقة) والصقه هنا. الحدّ المجاني ~50 طلبًا/يوم.'}
               </p>
             </div>
           )}
