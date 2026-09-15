@@ -12,6 +12,7 @@ import Future from './pages/Future';
 import Scholarships from './pages/Scholarships';
 import Alternatives from './pages/Alternatives';
 import Profile from './pages/Profile';
+import Auth from './pages/Auth';
 import BottomNav from './components/BottomNav';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
         <Route path="/scholarships" element={<Scholarships />} />
         <Route path="/alternatives" element={<Alternatives />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/auth" element={<Auth />} />
       </Routes>
       <BottomNav />
     </div>

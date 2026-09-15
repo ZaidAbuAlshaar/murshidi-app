@@ -44,4 +44,4 @@ MIT — يحقّ لأيّ جهة تعليميّة أو حكوميّة أردني
 
 ## المؤلّف
 
-**عبد الرحمن الحيموني** — abdalrahman.alhaymouni@gmail.com
+**عبد الرحمن الهيموني** — abdalrahman.alhaymouni@gmail.com

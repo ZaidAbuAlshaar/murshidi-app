@@ -1,11 +1,29 @@
-import { User, Settings, Bell, Globe, Heart, Award, Share2, LogOut, ChevronLeft, ChevronRight, FileText, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { User, Settings, Bell, Globe, Heart, Award, Share2, LogOut, ChevronLeft, ChevronRight, FileText, ShieldCheck, LogIn } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import HashemiteEmblem from '../components/HashemiteEmblem';
 import { useLang } from '../i18n/LangContext';
+import { getSessionUser, signOut, initialsOf, type Account } from '../lib/account';
+
+const DEMO_NAME_AR = 'زائر';
+const DEMO_NAME_EN = 'Guest';
 
 export default function Profile() {
   const { t, lang, toggleLang, dir } = useLang();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<Account | null>(() => getSessionUser());
   const ChevronEnd = dir === 'rtl' ? ChevronLeft : ChevronRight;
+
+  const displayName = user?.name || (lang === 'ar' ? DEMO_NAME_AR : DEMO_NAME_EN);
+  const displayCity = user?.city || (lang === 'ar' ? 'عمّان' : 'Amman');
+  const displayGrade = user?.grade ?? 87;
+  const memberYear = user ? new Date(user.createdAt).getFullYear().toString() : '2026';
+
+  const logout = () => {
+    signOut();
+    setUser(null);
+  };
 
   const sections = [
     {
@@ -41,18 +59,18 @@ export default function Profile() {
       <div className="bg-white border-b border-gov-line p-4">
         <div className="flex items-center gap-3">
           <div className="w-14 h-14 rounded-md bg-gov-navy text-white flex items-center justify-center text-base font-bold">
-            {lang === 'ar' ? 'ع.ح' : 'AH'}
+            {initialsOf(displayName, lang)}
           </div>
           <div className="flex-1">
             <p className="text-base font-bold text-gov-ink">
-              {lang === 'ar' ? 'عبد الرحمن الحيموني' : 'Abdulrahman Alhaymouni'}
+              {displayName}
             </p>
             <p className="text-[11px] text-gov-muted mt-0.5">
-              {t('pages.home.studentLabel')} · {lang === 'ar' ? 'عمّان' : 'Amman'}
+              {t('pages.home.studentLabel')} · {displayCity}
             </p>
             <div className="flex items-center gap-1.5 mt-1.5">
-              <span className="gov-badge gov-badge-info">{t('profile.gradeLabel')}: 87</span>
-              <span className="gov-badge gov-badge-neutral">{t('profile.memberSince')} 2026</span>
+              <span className="gov-badge gov-badge-info">{t('profile.gradeLabel')}: {displayGrade}</span>
+              <span className="gov-badge gov-badge-neutral">{t('profile.memberSince')} {memberYear}</span>
             </div>
           </div>
         </div>
@@ -134,12 +152,25 @@ export default function Profile() {
         ))}
       </div>
 
-      {/* Logout */}
+      {/* Account */}
       <div className="px-4 mt-5">
-        <button className="w-full py-2.5 rounded-gov border border-gov-danger/30 bg-white text-gov-danger text-sm font-semibold flex items-center justify-center gap-2 hover:bg-red-50">
-          <LogOut size={14} />
-          {t('profile.logout')}
-        </button>
+        {user ? (
+          <button
+            onClick={logout}
+            className="w-full py-2.5 rounded-gov border border-gov-danger/30 bg-white text-gov-danger text-sm font-semibold flex items-center justify-center gap-2 hover:bg-red-50"
+          >
+            <LogOut size={14} />
+            {t('profile.logout')}
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate('/auth')}
+            className="btn-primary w-full"
+          >
+            <LogIn size={15} />
+            {lang === 'ar' ? 'تسجيل الدخول / إنشاء حساب' : 'Sign in / Create account'}
+          </button>
+        )}
       </div>
 
       {/* Footer */}

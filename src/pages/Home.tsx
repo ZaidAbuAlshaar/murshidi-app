@@ -7,6 +7,7 @@ import OfficialHeader from '../components/OfficialHeader';
 import { jobMarketTrends, nationalStats } from '../data/majors';
 import { useLang } from '../i18n/LangContext';
 import type { TranslationKey } from '../i18n/translations';
+import { getSessionUser } from '../lib/account';
 
 interface Service {
   to: string;
@@ -30,6 +31,10 @@ export default function Home() {
   const navigate = useNavigate();
   const { t, lang, dir } = useLang();
   const ChevronEnd = dir === 'rtl' ? ChevronLeft : ChevronRight;
+  const sessionUser = getSessionUser();
+  const heroName = sessionUser?.name || (lang === 'ar' ? 'عبد الرحمن الهيموني' : 'Abdulrahman Alhaimouni');
+  const heroCity = sessionUser?.city || (lang === 'ar' ? 'عمّان' : 'Amman');
+  const heroGrade = sessionUser?.grade ?? 87;
 
   return (
     <div className="min-h-screen bg-gov-bg pb-28">
@@ -46,38 +51,55 @@ export default function Home() {
           </span>
         </div>
         <p className="text-base font-bold text-gov-ink leading-tight">
-          {lang === 'ar' ? 'عبد الرحمن الحيموني' : 'Abdulrahman Alhaymouni'}
+          {heroName}
         </p>
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
           <span className="gov-badge gov-badge-info">{t('pages.home.studentLabel')}</span>
-          <span className="gov-badge gov-badge-neutral">{lang === 'ar' ? 'عمّان' : 'Amman'}</span>
-          <span className="gov-badge gov-badge-neutral">{t('profile.gradeLabel')}: 87</span>
+          <span className="gov-badge gov-badge-neutral">{heroCity}</span>
+          <span className="gov-badge gov-badge-neutral">{t('profile.gradeLabel')}: {heroGrade}</span>
         </div>
       </div>
 
-      {/* Primary CTA */}
+      {/* Hero hook */}
       <div className="p-4">
-        <button
-          onClick={() => navigate('/roi')}
-          className="w-full text-start gov-card-interactive p-4"
-        >
-          <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-lg bg-gov-navy flex items-center justify-center text-white shrink-0">
-              <Calculator size={20} strokeWidth={2.2} />
+        <div className="relative overflow-hidden rounded-2xl bg-gov-navy text-white">
+          <div className="pointer-events-none absolute -top-16 -start-16 w-48 h-48 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute -bottom-20 -end-10 w-56 h-56 rounded-full bg-gov-gold/20" />
+          <div className="relative p-5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gov-gold/15 text-gov-gold text-[11px] font-bold">
+              <Sparkles size={12} />
+              {lang === 'ar' ? 'قرار واحد… يحدد مستقبلك' : 'One decision… shapes your future'}
+            </span>
+            <h2 className="text-xl font-bold leading-snug mt-3">
+              {lang === 'ar' ? 'تخصّصك الغلط بيكلّفك 10 سنين' : 'A wrong major costs you 10 years'}
+            </h2>
+            <p className="text-[13px] text-white/80 leading-relaxed mt-1.5">
+              {lang === 'ar'
+                ? 'مُرشِدي يحسب لك العائد الحقيقي لكلّ تخصّص من معدّلك وبيانات سوق العمل الأردني — قبل ما تختار.'
+                : 'Murshidi computes the real return of every major from your GPA and Jordanian labour data — before you choose.'}
+            </p>
+            <div className="flex items-center gap-4 mt-3 text-[11px] text-white/70">
+              <span className="inline-flex items-center gap-1"><BarChart3 size={12} />{lang === 'ar' ? '12 تخصّصًا بالأرقام' : '12 majors in numbers'}</span>
+              <span className="inline-flex items-center gap-1"><TrendingUp size={12} />{lang === 'ar' ? 'بيانات DOS 2026' : 'DOS 2026 data'}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                <h3 className="text-sm font-bold text-gov-ink">{t('pages.home.startCalc')}</h3>
-                <span className="gov-badge gov-badge-success">{t('pages.home.recommended')}</span>
-              </div>
-              <p className="text-xs text-gov-muted leading-relaxed">{t('pages.home.startCalcDesc')}</p>
-              <span className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-gov-navy">
+            <div className="flex items-center gap-2 mt-4">
+              <button
+                onClick={() => navigate('/roi')}
+                className="flex-1 min-h-[46px] px-4 rounded-xl bg-gov-gold text-gov-navy text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+              >
+                <Calculator size={17} strokeWidth={2.4} />
                 {t('btn.openCalculator')}
-                <ChevronEnd size={14} />
-              </span>
+              </button>
+              <button
+                onClick={() => navigate('/personality')}
+                aria-label={lang === 'ar' ? 'اختبر ميولك' : 'Test your interests'}
+                className="min-h-[46px] min-w-[46px] px-3 rounded-xl border border-white/25 text-white flex items-center justify-center active:scale-[0.99] transition-transform"
+              >
+                <Brain size={18} />
+              </button>
             </div>
           </div>
-        </button>
+        </div>
       </div>
 
       {/* Services list */}
@@ -159,7 +181,7 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-2">
           <Stat label={t('stat.studentsHelped')} value={nationalStats.studentsHelped.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} />
           <Stat label={t('stat.jobsAnalyzed')} value={nationalStats.jobsScraped.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} />
-          <Stat label={t('stat.unemployment')} value={`${nationalStats.graduateUnemployment}%`} hint="DOS 2024" warn />
+          <Stat label={t('stat.unemployment')} value={`${nationalStats.graduateUnemployment}%`} hint="DOS Q1 2026" warn />
           <Stat label={t('stat.nationalCost')} value={lang === 'ar' ? '280 م.د' : '280M JOD'} hint={lang === 'ar' ? 'تحليل مرشدي' : 'Murshidi analysis'} />
         </div>
       </div>

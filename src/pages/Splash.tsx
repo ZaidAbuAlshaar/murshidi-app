@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useLang } from '../i18n/LangContext';
 import type { TranslationKey } from '../i18n/translations';
+import { isOnboarded, setOnboarded } from '../lib/account';
 
 interface Stat { value: string; labelKey: TranslationKey; }
 interface Slide {
@@ -73,6 +74,15 @@ export default function Splash() {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
   const { t, dir } = useLang();
+
+  useEffect(() => {
+    if (isOnboarded()) navigate('/home', { replace: true });
+  }, [navigate]);
+
+  const finish = () => {
+    setOnboarded();
+    navigate('/home');
+  };
   const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight;
   const PrevIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
 
@@ -90,7 +100,7 @@ export default function Splash() {
         <div className="px-4 h-12 flex items-center justify-between">
           <img src="/favicon.svg" alt={t('app.name')} width={28} height={28} className="rounded-md" />
           <button
-            onClick={() => navigate('/home')}
+            onClick={finish}
             className="h-8 px-3 text-xs font-semibold text-gov-muted hover:text-gov-navy hover:bg-gov-bg-soft rounded-md transition-colors"
           >
             {t('btn.skip')}
@@ -160,7 +170,7 @@ export default function Splash() {
           </button>
           <button
             onClick={() => {
-              if (isLast) navigate('/home');
+              if (isLast) finish();
               else setStep(step + 1);
             }}
             className="btn-primary flex-1"

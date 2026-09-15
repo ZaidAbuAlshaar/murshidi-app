@@ -105,7 +105,7 @@ export default function Compare() {
                 values={selected.map((m) => `${m.yearlyTuitionPrivate.toLocaleString()} د.أ`)}
               />
               <Row
-                label="نسبة البطالة (DOS 2024)"
+                label="نسبة البطالة (DOS Q1 2026)"
                 values={selected.map((m) => `${m.unemploymentRate}%`)}
                 colorFn={(v) => {
                   const n = parseFloat(v);

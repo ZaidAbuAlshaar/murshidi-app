@@ -7,7 +7,7 @@ export interface Major {
   nameEn: string;
   icon: string;
   color: string;
-  unemploymentRate: number; // % - DOS 2024
+  unemploymentRate: number; // % - DOS Q1 2026
   firstSalary: number; // JOD/month
   fiveYearSalary: number;
   tenYearSalary: number;
