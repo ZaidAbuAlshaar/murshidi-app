@@ -1,10 +1,12 @@
 import HashemiteEmblem from './HashemiteEmblem';
 import MizanLogo from './MizanLogo';
-import { Bell } from 'lucide-react';
+import { UserRound } from 'lucide-react';
 import { useLang } from '../i18n/LangContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function OfficialHeader() {
   const { t } = useLang();
+  const { isGuest } = useAuth();
   return (
     <div className="bg-white border-b border-gov-line safe-top">
       <div className="gov-strip" />
@@ -21,10 +23,15 @@ export default function OfficialHeader() {
       {/* App identification */}
       <div className="px-4 py-3 flex items-center justify-between">
         <MizanLogo size={40} showText variant="wordmark" />
-        <button className="relative w-9 h-9 rounded-md border border-gov-line flex items-center justify-center text-gov-body" aria-label="notifications">
-          <Bell size={16} />
-          <span className="absolute top-1.5 left-1.5 w-1.5 h-1.5 rounded-full bg-gov-red" />
-        </button>
+        {/* Same guest marker PageHeader shows, so Home is not the one screen
+            where guest mode is invisible. There is no notification system in
+            this build, so no bell and no unread dot. */}
+        {isGuest && (
+          <span className="gov-badge gov-badge-neutral shrink-0" title={t('auth.guest.badgeTitle')}>
+            <UserRound size={12} />
+            {t('auth.guest.badge')}
+          </span>
+        )}
       </div>
     </div>
   );

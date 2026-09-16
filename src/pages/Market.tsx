@@ -2,9 +2,11 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { TrendingUp, TrendingDown, FileText } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import { jobMarketTrends } from '../data/majors';
+import SourceNote from '../components/SourceNote';
+import { jobMarketTrends, DATASET_SOURCES } from '../data/majors';
+import { useLang } from '../i18n/LangContext';
 
 const monthlyTrend = [
   { month: 'كانون ثاني', tech: 1100, business: 850, medical: 540, engineering: 480 },
@@ -31,31 +33,31 @@ const cities = [
 ];
 
 export default function Market() {
+  const { t } = useLang();
+  const illustrative = DATASET_SOURCES.jobMarketTrends;
+
   return (
     <div className="min-h-screen bg-gov-bg pb-24">
-      <PageHeader
-        title="مرصد سوق العمل الأردني"
-        subtitle="بيانات محدّثة آلياً يوميّاً"
-        right={
-          <span className="gov-badge gov-badge-success">
-            <span className="w-1.5 h-1.5 rounded-full bg-gov-ok animate-pulse" />
-            مباشر
-          </span>
-        }
-      />
+      <PageHeader title="مرصد سوق العمل الأردني" subtitle={t('data.market.subtitle')} />
 
       {/* Header indicators */}
-      <div className="bg-white border-b border-gov-line px-4 py-3 grid grid-cols-3 gap-3">
-        <Indicator label="إعلانات نشطة" value="4,247" sub="آخر 30 يوماً" />
-        <Indicator label="نموّ شهري" value="+8.4%" sub="مقارنة بآذار" tone="ok" />
-        <Indicator label="مهارات صاعدة" value="23" sub="جديدة شهرياً" />
+      <div className="bg-white border-b border-gov-line px-4 py-3">
+        <div className="grid grid-cols-3 gap-3">
+          <Indicator label="إعلانات نشطة" value="4,247" sub="آخر 30 يوماً" />
+          <Indicator label="نموّ شهري" value="+8.4%" sub="مقارنة بآذار" tone="ok" />
+          <Indicator label="مهارات صاعدة" value="23" sub="جديدة شهرياً" />
+        </div>
+        <SourceNote className="mt-3" source={illustrative} note={t('data.market.notice')} />
       </div>
 
       {/* Monthly trend */}
       <div className="p-4">
         <div className="gov-card p-4">
-          <h3 className="gov-section-title mb-1">تطوّر الإعلانات حسب القطاع</h3>
-          <p className="text-[11px] text-gov-muted mb-3">عدد الإعلانات الشهريّة — Q1 2026</p>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="gov-section-title">تطوّر الإعلانات حسب القطاع</h3>
+            <SourceNote source={illustrative} compact />
+          </div>
+          <p className="text-[11px] text-gov-muted mb-3">عدد الإعلانات الشهريّة</p>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={monthlyTrend}>
               <defs>
@@ -85,6 +87,7 @@ export default function Market() {
         <h3 className="gov-section-title mb-2 flex items-center gap-2">
           <TrendingUp size={14} className="text-gov-ok" />
           المهن الأكثر طلباً
+          <SourceNote source={illustrative} compact className="ms-auto" />
         </h3>
         <div className="gov-card overflow-hidden">
           <table className="gov-table">
@@ -92,8 +95,8 @@ export default function Market() {
               <tr>
                 <th className="w-8">#</th>
                 <th>المهنة</th>
-                <th className="text-left">عدد الإعلانات</th>
-                <th className="text-left w-16">التغيّر</th>
+                <th className="text-end">عدد الإعلانات</th>
+                <th className="text-end w-16">التغيّر</th>
               </tr>
             </thead>
             <tbody>
@@ -101,8 +104,8 @@ export default function Market() {
                 <tr key={job.name}>
                   <td className="text-gov-muted tabular">{i + 1}</td>
                   <td className="font-medium text-gov-ink">{job.name}</td>
-                  <td className="text-left tabular">{job.count.toLocaleString()}</td>
-                  <td className={`text-left tabular font-semibold ${job.change >= 0 ? 'text-gov-ok' : 'text-gov-danger'}`}>
+                  <td className="text-end tabular">{job.count.toLocaleString()}</td>
+                  <td className={`text-end tabular font-semibold ${job.change >= 0 ? 'text-gov-ok' : 'text-gov-danger'}`}>
                     {job.change > 0 ? '+' : ''}{job.change}%
                   </td>
                 </tr>
@@ -117,22 +120,23 @@ export default function Market() {
         <h3 className="gov-section-title mb-2 flex items-center gap-2">
           <TrendingDown size={14} className="text-gov-danger" />
           المهن في تراجع
+          <SourceNote source={illustrative} compact className="ms-auto" />
         </h3>
         <div className="gov-card overflow-hidden">
           <table className="gov-table">
             <thead>
               <tr>
                 <th>المهنة</th>
-                <th className="text-left">عدد الإعلانات</th>
-                <th className="text-left w-16">التغيّر</th>
+                <th className="text-end">عدد الإعلانات</th>
+                <th className="text-end w-16">التغيّر</th>
               </tr>
             </thead>
             <tbody>
               {jobMarketTrends.declining.map((job) => (
                 <tr key={job.name}>
                   <td className="font-medium text-gov-ink">{job.name}</td>
-                  <td className="text-left tabular">{job.count.toLocaleString()}</td>
-                  <td className="text-left tabular font-semibold text-gov-danger">{job.change}%</td>
+                  <td className="text-end tabular">{job.count.toLocaleString()}</td>
+                  <td className="text-end tabular font-semibold text-gov-danger">{job.change}%</td>
                 </tr>
               ))}
             </tbody>
@@ -142,14 +146,17 @@ export default function Market() {
 
       {/* Top paying skills */}
       <div className="px-4 mt-4">
-        <h3 className="gov-section-title mb-2">المهارات الأعلى أجراً</h3>
+        <h3 className="gov-section-title mb-2 flex items-center gap-2">
+          المهارات الأعلى أجراً
+          <SourceNote source={illustrative} compact className="ms-auto" />
+        </h3>
         <div className="gov-card overflow-hidden">
           <table className="gov-table">
             <thead>
               <tr>
                 <th className="w-8">#</th>
                 <th>المهارة</th>
-                <th className="text-left">متوسّط الأجر</th>
+                <th className="text-end">متوسّط الأجر</th>
               </tr>
             </thead>
             <tbody>
@@ -157,7 +164,7 @@ export default function Market() {
                 <tr key={s.name}>
                   <td className="text-gov-muted tabular">{i + 1}</td>
                   <td className="font-medium text-gov-ink">{s.name}</td>
-                  <td className="text-left tabular font-semibold">{s.salary.toLocaleString()} د.أ / شهر</td>
+                  <td className="text-end tabular font-semibold">{s.salary.toLocaleString()} د.أ / شهر</td>
                 </tr>
               ))}
             </tbody>
@@ -168,7 +175,10 @@ export default function Market() {
       {/* Two column charts */}
       <div className="px-4 mt-4 grid grid-cols-2 gap-3">
         <div className="gov-card p-3">
-          <h4 className="text-xs font-bold text-gov-ink mb-2">التوزيع حسب القطاع</h4>
+          <div className="flex items-center justify-between gap-1 mb-2">
+            <h4 className="text-xs font-bold text-gov-ink">التوزيع حسب القطاع</h4>
+            <SourceNote source={illustrative} compact />
+          </div>
           <ResponsiveContainer width="100%" height={130}>
             <PieChart>
               <Pie data={sectorPie} cx="50%" cy="50%" innerRadius={28} outerRadius={50} paddingAngle={2} dataKey="value">
@@ -190,7 +200,10 @@ export default function Market() {
         </div>
 
         <div className="gov-card p-3">
-          <h4 className="text-xs font-bold text-gov-ink mb-2">التوزيع الجغرافي</h4>
+          <div className="flex items-center justify-between gap-1 mb-2">
+            <h4 className="text-xs font-bold text-gov-ink">التوزيع الجغرافي</h4>
+            <SourceNote source={illustrative} compact />
+          </div>
           <div className="space-y-2">
             {cities.map((c) => (
               <div key={c.name}>
@@ -210,13 +223,7 @@ export default function Market() {
       {/* Source */}
       <div className="px-4 mt-4">
         <div className="bg-gov-bg-soft border border-gov-line rounded-gov p-3">
-          <div className="flex items-start gap-2">
-            <FileText size={14} className="text-gov-muted shrink-0 mt-0.5" />
-            <p className="text-[11px] text-gov-muted leading-relaxed">
-              مصادر البيانات: تجميع آلي من Akhtaboot, Bayt, LinkedIn Jordan, WuzzufJO. تُحدَّث يوميّاً.
-              التحقّق المستقلّ بالتعاون مع كلّيّة الاقتصاد — الجامعة الأردنيّة.
-            </p>
-          </div>
+          <SourceNote source={illustrative} note={t('data.note.postings')} />
         </div>
       </div>
     </div>

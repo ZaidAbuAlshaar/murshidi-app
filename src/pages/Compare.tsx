@@ -3,13 +3,17 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar,
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from 'recharts';
-import { X, FileText } from 'lucide-react';
+import { X } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import { majorsData, type Major } from '../data/majors';
+import SourceNote from '../components/SourceNote';
+import { majorsData, DATASET_SOURCES, type Major } from '../data/majors';
+import { useLang } from '../i18n/LangContext';
 
 const COLORS = ['#003F7D', '#007A4D', '#A88631'];
 
 export default function Compare() {
+  const { t } = useLang();
+  const illustrative = DATASET_SOURCES.majors;
   const [selected, setSelected] = useState<Major[]>([
     majorsData.find((m) => m.id === 'cs')!,
     majorsData.find((m) => m.id === 'medicine')!,
@@ -25,7 +29,7 @@ export default function Compare() {
     'سرعة التخرّج',
     'انخفاض الكلفة',
   ].map((category, i) => {
-    const obj: any = { category };
+    const obj: Record<string, string | number> = { category };
     selected.forEach((m) => {
       const value = [
         (m.firstSalary / 800) * 100,
@@ -59,13 +63,16 @@ export default function Compare() {
 
       {/* Selected majors */}
       <div className="bg-white border-b border-gov-line p-4">
-        <p className="gov-section-title mb-2">التخصّصات المحدّدة</p>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="gov-section-title">التخصّصات المحدّدة</p>
+          <SourceNote source={illustrative} compact />
+        </div>
         <div className="grid grid-cols-3 gap-2">
           {selected.map((m, i) => (
             <button
               key={i}
               onClick={() => setPicker(i)}
-              className="border border-gov-line rounded-gov p-2.5 text-right hover:bg-gov-bg-soft transition-colors"
+              className="border border-gov-line rounded-gov p-2.5 text-start hover:bg-gov-bg-soft transition-colors"
               style={{ borderTopColor: COLORS[i], borderTopWidth: 2 }}
             >
               <div className="flex items-center justify-between mb-1">
@@ -94,7 +101,7 @@ export default function Compare() {
               </tr>
             </thead>
             <tbody>
-              <Row label="حدّ القبول الأدنى" values={selected.map((m) => m.averageAcceptance.toString())} />
+              <Row label={t('data.acceptance.label')} values={selected.map((m) => m.averageAcceptance.toString())} />
               <Row label="مدّة الدراسة" values={selected.map((m) => `${m.duration} سنوات`)} />
               <Row
                 label="الرسوم السنويّة (حكومي)"
@@ -105,7 +112,7 @@ export default function Compare() {
                 values={selected.map((m) => `${m.yearlyTuitionPrivate.toLocaleString()} د.أ`)}
               />
               <Row
-                label="نسبة البطالة (DOS Q1 2026)"
+                label={t('data.unemployment.label')}
                 values={selected.map((m) => `${m.unemploymentRate}%`)}
                 colorFn={(v) => {
                   const n = parseFloat(v);
@@ -131,13 +138,22 @@ export default function Compare() {
               <Row label="مؤشّر الرضا" values={selected.map((m) => `${m.satisfactionScore}/100`)} />
             </tbody>
           </table>
+          <div className="px-3 py-2.5 bg-gov-bg-soft border-t border-gov-line">
+            <SourceNote source={illustrative} note={t('data.note.majorFigures')} />
+            <p className="text-[10.5px] text-gov-muted leading-relaxed mt-1.5 text-start">
+              {t('data.note.acceptance')}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Radar chart */}
       <div className="px-4">
         <div className="gov-card p-4">
-          <h3 className="gov-section-title mb-1">تحليل متعدّد الأبعاد</h3>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="gov-section-title">تحليل متعدّد الأبعاد</h3>
+            <SourceNote source={illustrative} compact />
+          </div>
           <p className="text-[11px] text-gov-muted mb-3">مقارنة على ستّة معايير أساسيّة (0–100)</p>
           <ResponsiveContainer width="100%" height={260}>
             <RadarChart data={radarData}>
@@ -163,7 +179,10 @@ export default function Compare() {
       {/* Salary growth */}
       <div className="px-4 mt-4">
         <div className="gov-card p-4">
-          <h3 className="gov-section-title mb-1">منحنى تطوّر الراتب</h3>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="gov-section-title">منحنى تطوّر الراتب</h3>
+            <SourceNote source={illustrative} compact />
+          </div>
           <p className="text-[11px] text-gov-muted mb-3">دينار أردني / شهرياً</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={salaryData}>
@@ -183,12 +202,7 @@ export default function Compare() {
       {/* Source footer */}
       <div className="px-4 mt-4">
         <div className="bg-gov-bg-soft border border-gov-line rounded-gov p-3">
-          <div className="flex items-start gap-2">
-            <FileText size={14} className="text-gov-muted shrink-0 mt-0.5" />
-            <p className="text-[11px] text-gov-muted leading-relaxed">
-              المصادر: وزارة التعليم العالي (معدّلات القبول 2025)، DOS Q1 2026 (نسب البطالة)، مسح القوى العاملة 2024.
-            </p>
-          </div>
+          <SourceNote source={illustrative} note={t('data.note.majorFigures')} />
         </div>
       </div>
 
@@ -216,11 +230,11 @@ export default function Compare() {
                 <button
                   key={m.id}
                   onClick={() => replace(picker, m)}
-                  className="w-full px-2 py-3 text-right hover:bg-gov-bg-soft"
+                  className="w-full px-2 py-3 text-start hover:bg-gov-bg-soft"
                 >
                   <p className="text-sm font-semibold text-gov-ink">{m.nameAr}</p>
                   <p className="text-[11px] text-gov-muted mt-0.5">
-                    قبول {m.averageAcceptance} · بطالة {m.unemploymentRate}%
+                    {t('data.acceptance.label')} {m.averageAcceptance} · {t('data.unemployment.label')} {m.unemploymentRate}%
                   </p>
                 </button>
               ))}

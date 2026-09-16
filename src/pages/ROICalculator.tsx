@@ -1,8 +1,11 @@
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Check, AlertTriangle, FileText, Printer } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, AlertTriangle, Printer } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import { majorsData, universitiesData, type Major, type University } from '../data/majors';
+import SourceNote from '../components/SourceNote';
+import { majorsData, universitiesData, DATASET_SOURCES, type Major, type University } from '../data/majors';
 import { useLang } from '../i18n/LangContext';
+import { recordActivity } from '../lib/activity';
+import type { TranslationKey } from '../i18n/translations';
 
 interface ROIResult {
   major: Major;
@@ -28,6 +31,9 @@ export default function ROICalculator() {
   const [budget, setBudget] = useState(5000);
   const [city, setCity] = useState(cities[0]);
   const [selectedMajors, setSelectedMajors] = useState<string[]>([]);
+  // The report is stamped when the student asks for results, not while
+  // rendering — reading the clock during render makes the component impure.
+  const [issuedAt, setIssuedAt] = useState<number | null>(null);
 
   const toggleMajor = (id: string) => {
     setSelectedMajors((prev) => {
@@ -269,10 +275,20 @@ export default function ROICalculator() {
             })}
           </div>
 
+          <SourceNote
+            className="mt-3"
+            source={DATASET_SOURCES.majors}
+            note={t('data.note.acceptance')}
+          />
+
           <div className="flex gap-2 mt-4">
             <button onClick={() => setStep(0)} className="btn-secondary flex-1">{t('btn.back')}</button>
             <button
-              onClick={() => setStep(2)}
+              onClick={() => {
+                setIssuedAt(Date.now());
+                recordActivity('calculation');
+                setStep(2);
+              }}
               disabled={selectedMajors.length === 0}
               className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -288,8 +304,11 @@ export default function ROICalculator() {
           {/* Reference */}
           <div className="gov-card p-3 flex items-center justify-between text-[11px]">
             <div className="text-gov-muted">
-              <p>{t('calc.report')}: MRSH-{Math.floor(Date.now() / 1000)}</p>
-              <p>{t('calc.reportDate')}: {new Date().toLocaleDateString(lang === 'ar' ? 'ar-JO' : 'en-US')}</p>
+              <p>{t('calc.report')}: {issuedAt ? `MRSH-${Math.floor(issuedAt / 1000)}` : '—'}</p>
+              <p>
+                {t('calc.reportDate')}:{' '}
+                {issuedAt ? new Date(issuedAt).toLocaleDateString(lang === 'ar' ? 'ar-JO' : 'en-US') : '—'}
+              </p>
             </div>
             <button className="btn-ghost text-[11px]">
               <Printer size={12} />
@@ -313,6 +332,7 @@ export default function ROICalculator() {
                     {t('calc.expectedROI')}: <strong>{results[0].netROI.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} {t('common.dinar')}</strong>,
                     {' '}{t('calc.annualReturn')} {results[0].annualReturn.toFixed(1)}%.
                   </p>
+                  <SourceNote className="mt-2" source={DATASET_SOURCES.majors} />
                 </div>
               </div>
             </div>
@@ -325,22 +345,16 @@ export default function ROICalculator() {
 
           {/* Source disclosure */}
           <div className="bg-gov-bg-soft border border-gov-line rounded-gov p-3">
-            <div className="flex items-start gap-2">
-              <FileText size={14} className="text-gov-muted shrink-0 mt-0.5" />
-              <div className="text-[11px] text-gov-muted leading-relaxed">
-                <p className="font-semibold text-gov-body">{t('calc.methodology')}:</p>
-                <p>
-                  {lang === 'ar'
-                    ? 'العائد = الدخل المتوقّع لعشر سنوات (مرجّح بنسبة التوظيف من DOS) − إجمالي كلفة الدراسة (الرسوم + النقل + الإقامة + الكتب).'
-                    : 'Net ROI = expected 10-year income (weighted by DOS employment rate) − total study cost (tuition + transport + housing + books).'}
-                </p>
-                <p className="mt-1">
-                  {t('calc.sources')}: {lang === 'ar'
-                    ? 'وزارة التعليم العالي 2025، DOS Q1 2026، مسح القوى العاملة 2024.'
-                    : 'Ministry of Higher Education 2025, DOS Q1 2026, Labour Force Survey 2024.'}
-                </p>
-              </div>
-            </div>
+            <p className="text-[11px] font-semibold text-gov-body text-start">{t('calc.methodology')}:</p>
+            <p className="text-[11px] text-gov-muted leading-relaxed text-start mt-0.5">
+              {lang === 'ar'
+                ? 'العائد = الدخل المتوقّع لعشر سنوات (مرجّح بنسبة التوظيف المفترضة للتخصّص) − إجمالي كلفة الدراسة (الرسوم + النقل + الإقامة + الكتب).'
+                : 'Net ROI = expected 10-year income (weighted by the assumed employment rate of the major) − total study cost (tuition + transport + housing + books).'}
+            </p>
+            <SourceNote className="mt-2" source={DATASET_SOURCES.majors} note={t('data.note.roi')} />
+            <p className="text-[10.5px] text-gov-muted leading-relaxed mt-1.5 text-start">
+              {t('data.note.acceptance')}
+            </p>
           </div>
 
           <button onClick={() => setStep(0)} className="btn-secondary w-full">
@@ -352,7 +366,12 @@ export default function ROICalculator() {
   );
 }
 
-function ResultRow({ r, rank, t, lang }: { r: ROIResult; rank: number; t: (k: any) => string; lang: 'ar' | 'en' }) {
+function ResultRow({ r, rank, t, lang }: {
+  r: ROIResult;
+  rank: number;
+  t: (k: TranslationKey) => string;
+  lang: 'ar' | 'en';
+}) {
   const numLocale = lang === 'ar' ? 'ar-EG' : 'en-US';
   return (
     <div className="gov-card overflow-hidden">
@@ -423,6 +442,10 @@ function ResultRow({ r, rank, t, lang }: { r: ROIResult; rank: number; t: (k: an
           </tr>
         </tbody>
       </table>
+
+      <div className="px-4 py-2.5 border-t border-gov-line">
+        <SourceNote source={r.major.source} />
+      </div>
     </div>
   );
 }

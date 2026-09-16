@@ -4,10 +4,12 @@ import {
   TrendingUp, GraduationCap, Wallet, ChevronLeft, ChevronRight, FileText, CheckCircle2,
 } from 'lucide-react';
 import OfficialHeader from '../components/OfficialHeader';
-import { jobMarketTrends, nationalStats } from '../data/majors';
+import SourceNote from '../components/SourceNote';
+import { jobMarketTrends, nationalStats, dosUnemployment, DATASET_SOURCES } from '../data/majors';
 import { useLang } from '../i18n/LangContext';
 import type { TranslationKey } from '../i18n/translations';
-import { getSessionUser } from '../lib/account';
+import { localizeCity } from '../lib/account';
+import { useAuth } from '../context/AuthContext';
 
 interface Service {
   to: string;
@@ -31,10 +33,12 @@ export default function Home() {
   const navigate = useNavigate();
   const { t, lang, dir } = useLang();
   const ChevronEnd = dir === 'rtl' ? ChevronLeft : ChevronRight;
-  const sessionUser = getSessionUser();
-  const heroName = sessionUser?.name || (lang === 'ar' ? 'عبد الرحمن الهيموني' : 'Abdulrahman Alhaimouni');
-  const heroCity = sessionUser?.city || (lang === 'ar' ? 'عمّان' : 'Amman');
-  const heroGrade = sessionUser?.grade ?? 87;
+  const { user } = useAuth();
+  // Nothing here is invented: a visitor without a profile gets no name, no
+  // governorate and no average, rather than a stand-in for one.
+  const heroName = user?.name ?? t('profile.guest.title');
+  const heroCity = user?.city ? localizeCity(user.city, lang) : null;
+  const heroGrade = user?.grade ?? null;
 
   return (
     <div className="min-h-screen bg-gov-bg pb-28">
@@ -55,8 +59,10 @@ export default function Home() {
         </p>
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
           <span className="gov-badge gov-badge-info">{t('pages.home.studentLabel')}</span>
-          <span className="gov-badge gov-badge-neutral">{heroCity}</span>
-          <span className="gov-badge gov-badge-neutral">{t('profile.gradeLabel')}: {heroGrade}</span>
+          {heroCity && <span className="gov-badge gov-badge-neutral">{heroCity}</span>}
+          {heroGrade !== null && (
+            <span className="gov-badge gov-badge-neutral">{t('profile.gradeLabel')}: {heroGrade}</span>
+          )}
         </div>
       </div>
 
@@ -131,10 +137,7 @@ export default function Home() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="gov-section-title">{t('pages.home.topJobsTitle')}</h3>
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-gov-ok/10 text-[9px] font-bold text-gov-ok">
-              <span className="w-1 h-1 rounded-full bg-gov-ok" />
-              {t('pages.home.live')}
-            </span>
+            <SourceNote source={DATASET_SOURCES.jobMarketTrends} compact />
           </div>
           <button onClick={() => navigate('/market')} className="text-[11px] text-gov-navy font-semibold hover:underline">
             {t('btn.viewAll')}
@@ -164,23 +167,59 @@ export default function Home() {
               ))}
             </tbody>
           </table>
-          <div className="px-3 py-2 bg-gov-bg-soft border-t border-gov-line text-[10px] text-gov-muted leading-relaxed">
-            {lang === 'ar'
-              ? `المصدر: تجميع آلي من Akhtaboot, Bayt, LinkedIn Jordan — ${new Date().toLocaleDateString('ar-JO')}`
-              : `Source: Auto-aggregated from Akhtaboot, Bayt, LinkedIn Jordan — ${new Date().toLocaleDateString('en-US')}`}
+          <div className="px-3 py-2 bg-gov-bg-soft border-t border-gov-line">
+            <SourceNote source={DATASET_SOURCES.jobMarketTrends} note={t('data.note.postings')} />
           </div>
         </div>
       </div>
 
-      {/* National impact */}
+      {/* Official indicator — the one figure on this screen with a published source */}
       <div className="px-4 mt-5">
-        <h3 className="gov-section-title mb-2">{t('pages.home.nationalIndicators')}</h3>
+        <h3 className="gov-section-title mb-2">{t('data.home.officialTitle')}</h3>
+        <div className="gov-card p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] text-gov-muted leading-tight">{t('stat.unemployment')}</p>
+              <p className="text-2xl font-bold text-gov-ink tabular mt-1 leading-none">
+                {dosUnemployment.jordanians.toFixed(1)}%
+              </p>
+              <p className="text-[10px] text-gov-muted mt-1.5">
+                {t('data.dos.period')} · {t('data.home.dosVsLastYear')} {dosUnemployment.jordaniansPrevYear.toFixed(1)}% {t('data.dos.periodPrev')}
+              </p>
+            </div>
+            <div className="min-w-0 text-end">
+              <p className="text-[11px] text-gov-muted leading-tight">{t('data.home.dosTotal')}</p>
+              <p className="text-2xl font-bold text-gov-body tabular mt-1 leading-none">
+                {dosUnemployment.totalPopulation.toFixed(1)}%
+              </p>
+              <p className="text-[10px] text-gov-muted mt-1.5">
+                {t('data.home.dosVsLastYear')} {dosUnemployment.totalPopulationPrevYear.toFixed(1)}%
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gov-line">
+            <SourceNote source={dosUnemployment.source} />
+          </div>
+        </div>
+      </div>
+
+      {/* Platform impact — demo-stage figures, badged as such */}
+      <div className="px-4 mt-5">
+        <h3 className="gov-section-title mb-2">{t('data.home.impactTitle')}</h3>
         <div className="grid grid-cols-2 gap-2">
           <Stat label={t('stat.studentsHelped')} value={nationalStats.studentsHelped.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} />
           <Stat label={t('stat.jobsAnalyzed')} value={nationalStats.jobsScraped.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} />
-          <Stat label={t('stat.unemployment')} value={`${nationalStats.graduateUnemployment}%`} hint="DOS Q1 2026" warn />
-          <Stat label={t('stat.nationalCost')} value={lang === 'ar' ? '280 م.د' : '280M JOD'} hint={lang === 'ar' ? 'تحليل مرشدي' : 'Murshidi analysis'} />
+          <Stat
+            className="col-span-2"
+            label={t('stat.nationalCost')}
+            value={lang === 'ar' ? '280 م.د' : '280M JOD'}
+          />
         </div>
+        <SourceNote
+          className="mt-2"
+          source={DATASET_SOURCES.nationalStats}
+          note={t('data.note.impact')}
+        />
       </div>
 
       {/* Counsellor CTA */}
@@ -213,14 +252,11 @@ export default function Home() {
   );
 }
 
-function Stat({ label, value, hint, warn }: { label: string; value: string; hint?: string; warn?: boolean }) {
+function Stat({ label, value, className = '' }: { label: string; value: string; className?: string }) {
   return (
-    <div className="gov-card p-3">
+    <div className={`gov-card p-3 ${className}`}>
       <p className="text-[11px] text-gov-muted leading-tight">{label}</p>
-      <p className={`text-lg font-bold tabular mt-1 leading-none ${warn ? 'text-gov-danger' : 'text-gov-ink'}`}>
-        {value}
-      </p>
-      {hint && <p className="text-[10px] text-gov-muted mt-1.5">{hint}</p>}
+      <p className="text-lg font-bold tabular mt-1 leading-none text-gov-ink">{value}</p>
     </div>
   );
 }

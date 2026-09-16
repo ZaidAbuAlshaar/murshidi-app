@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Calculator, BarChart3, MessageCircle, User } from 'lucide-react';
 import { useKeyboardOpen } from '../hooks/useKeyboardOpen';
 import { useLang } from '../i18n/LangContext';
+import { useAuth } from '../context/AuthContext';
 import type { TranslationKey } from '../i18n/translations';
 
 const items: { to: string; key: TranslationKey; icon: typeof Home }[] = [
@@ -12,13 +13,20 @@ const items: { to: string; key: TranslationKey; icon: typeof Home }[] = [
   { to: '/profile', key: 'nav.profile', icon: User },
 ];
 
+const HIDDEN_ON = new Set(['/', '/auth']);
+
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const keyboardOpen = useKeyboardOpen();
   const { t } = useLang();
+  const { user, isGuest, ready } = useAuth();
 
-  if (location.pathname === '/' || keyboardOpen) return null;
+  // The splash and the three doors are chrome-free, and nothing is navigable
+  // until the visitor has an identity — otherwise the bar flashes behind a
+  // redirect to /auth.
+  if (HIDDEN_ON.has(location.pathname) || keyboardOpen) return null;
+  if (!ready || (!user && !isGuest)) return null;
 
   return (
     <nav
@@ -43,7 +51,15 @@ export default function BottomNav() {
                 }`}
                 style={{ touchAction: 'manipulation' }}
               >
-                <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="relative">
+                  <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                  {to === '/profile' && isGuest && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-0.5 -end-0.5 w-1.5 h-1.5 rounded-full bg-gov-gold"
+                    />
+                  )}
+                </span>
                 <span className={`text-[10.5px] leading-none ${isActive ? 'font-bold' : 'font-medium'}`}>
                   {t(key)}
                 </span>

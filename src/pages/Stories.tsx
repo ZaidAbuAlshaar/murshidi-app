@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { ThumbsUp, Filter, Play, MessageCircle, FileText, Check, X } from 'lucide-react';
+import { ThumbsUp, Filter, Play, MessageCircle, Check, X } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
+import SourceNote from '../components/SourceNote';
+import { useLang } from '../i18n/LangContext';
 
 interface Story {
   id: number;
@@ -59,6 +61,7 @@ const stories: Story[] = [
 const filters = ['الكلّ', 'راضٍ', 'ندم', 'تحوّل وظيفي', 'سفر'];
 
 export default function Stories() {
+  const { t } = useLang();
   const [filter, setFilter] = useState('الكلّ');
 
   const filtered = filter === 'الكلّ'
@@ -78,7 +81,7 @@ export default function Stories() {
     <div className="min-h-screen bg-gov-bg pb-24">
       <PageHeader
         title="تجارب الخرّيجين"
-        subtitle="قاعدة بيانات شهادات حقيقيّة"
+        subtitle={t('data.stories.subtitle')}
         right={
           <button className="w-9 h-9 rounded-md border border-gov-line flex items-center justify-center text-gov-body">
             <Filter size={14} />
@@ -87,11 +90,14 @@ export default function Stories() {
       />
 
       {/* Aggregate stats */}
-      <div className="bg-white border-b border-gov-line px-4 py-3 grid grid-cols-4 gap-2">
-        <Mini label="عيّنة" value={stats.total.toString()} />
-        <Mini label="راضون" value={`${Math.round((stats.satisfied/stats.total)*100)}%`} tone="ok" />
-        <Mini label="فترة التوظيف" value={`${stats.avgMonths} ش`} />
-        <Mini label="متوسّط الراتب" value={`${stats.avgSalary} د`} />
+      <div className="bg-white border-b border-gov-line px-4 py-3">
+        <div className="grid grid-cols-4 gap-2">
+          <Mini label="عيّنة" value={stats.total.toString()} />
+          <Mini label="راضون" value={`${Math.round((stats.satisfied/stats.total)*100)}%`} tone="ok" />
+          <Mini label="فترة التوظيف" value={`${stats.avgMonths} ش`} />
+          <Mini label="متوسّط الراتب" value={`${stats.avgSalary} د`} />
+        </div>
+        <SourceNote className="mt-3" source="illustrative" note={t('data.note.stories')} />
       </div>
 
       {/* Filter chips */}
@@ -131,6 +137,7 @@ export default function Stories() {
                   {s.major} · {s.university} · دفعة {s.graduationYear}
                 </p>
               </div>
+              <SourceNote source="illustrative" compact />
             </div>
 
             <div className="p-4">
@@ -147,11 +154,11 @@ export default function Stories() {
                 <tbody>
                   <tr>
                     <td className="text-gov-muted">الراتب الحالي</td>
-                    <td className="text-left font-semibold tabular">{s.currentSalary.toLocaleString()} د.أ</td>
+                    <td className="text-end font-semibold tabular">{s.currentSalary.toLocaleString()} د.أ</td>
                   </tr>
                   <tr>
                     <td className="text-gov-muted">فترة الحصول على وظيفة</td>
-                    <td className="text-left font-semibold tabular">{s.monthsToJob} شهر</td>
+                    <td className="text-end font-semibold tabular">{s.monthsToJob} شهر</td>
                   </tr>
                 </tbody>
               </table>
@@ -182,12 +189,7 @@ export default function Stories() {
       {/* Methodology */}
       <div className="px-4 mt-3">
         <div className="bg-gov-bg-soft border border-gov-line rounded-gov p-3">
-          <div className="flex items-start gap-2">
-            <FileText size={14} className="text-gov-muted shrink-0 mt-0.5" />
-            <p className="text-[11px] text-gov-muted leading-relaxed">
-              تُجمع الشهادات بالشراكة مع الجامعات الأردنيّة بعد موافقة خطّيّة من الخرّيج. الأسماء مختصرة لحماية الخصوصيّة.
-            </p>
-          </div>
+          <SourceNote source="illustrative" note={t('data.note.stories')} />
         </div>
       </div>
     </div>

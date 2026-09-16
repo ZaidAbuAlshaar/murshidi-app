@@ -1,28 +1,15 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+// Holds the current interface language and keeps <html lang/dir> in step with it.
+// The context object and the `useLang` hook live in ./LangContext.ts so that this
+// module exports a component and nothing else (see the note in that file).
+
+import { useEffect, useState, type ReactNode } from 'react';
 import { translations, type Lang, type TranslationKey } from './translations';
-
-interface LangContextValue {
-  lang: Lang;
-  setLang: (lang: Lang) => void;
-  toggleLang: () => void;
-  t: (key: TranslationKey) => string;
-  dir: 'rtl' | 'ltr';
-}
-
-const LangContext = createContext<LangContextValue>({
-  lang: 'ar',
-  setLang: () => {},
-  toggleLang: () => {},
-  t: (k) => k,
-  dir: 'rtl',
-});
-
-const STORAGE_KEY = 'murshidi.lang';
+import { LangContext, LANG_STORAGE_KEY } from './LangContext';
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
     if (typeof window === 'undefined') return 'ar';
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const stored = window.localStorage.getItem(LANG_STORAGE_KEY);
     return stored === 'en' ? 'en' : 'ar';
   });
 
@@ -33,7 +20,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
     html.lang = lang;
     html.dir = lang === 'ar' ? 'rtl' : 'ltr';
     try {
-      window.localStorage.setItem(STORAGE_KEY, lang);
+      window.localStorage.setItem(LANG_STORAGE_KEY, lang);
     } catch {
       // localStorage may be unavailable
     }
@@ -57,5 +44,3 @@ export function LangProvider({ children }: { children: ReactNode }) {
     </LangContext.Provider>
   );
 }
-
-export const useLang = () => useContext(LangContext);

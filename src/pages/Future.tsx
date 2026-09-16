@@ -3,7 +3,11 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import PageHeader from '../components/PageHeader';
-import { futureJobs } from '../data/majors';
+import SourceNote from '../components/SourceNote';
+import { futureJobs, DATASET_SOURCES } from '../data/majors';
+import { useLang } from '../i18n/LangContext';
+
+const WEF_REPORT_URL = 'https://www.weforum.org/publications/the-future-of-jobs-report-2025/';
 
 const projections = [
   { year: 2024, ai: 100, traditional: 100, design: 100, security: 100 },
@@ -26,17 +30,31 @@ const newJobs2030 = [
 ];
 
 export default function Future() {
+  const { t } = useLang();
+  const illustrative = DATASET_SOURCES.futureJobs;
+
   return (
     <div className="min-h-screen bg-gov-bg pb-24">
-      <PageHeader title="مستقبل الوظائف 2030–2035" subtitle="تحليل WEF و ILO" />
+      <PageHeader title="مستقبل الوظائف 2030–2035" subtitle={t('data.future.subtitle')} />
 
-      {/* Headline */}
+      {/* Headline — quoted from a published report, with the citation attached */}
       <div className="bg-white border-b border-gov-line p-4">
         <div className="bg-gov-bg-soft border-r-4 border-r-gov-navy p-3 rounded-gov">
-          <p className="text-[11px] font-semibold text-gov-navy mb-1">رؤية المنتدى الاقتصادي العالمي 2030</p>
-          <p className="text-sm text-gov-ink leading-relaxed">
-            من المتوقّع أن تختفي <strong>23%</strong> من الوظائف الحاليّة بحلول 2030، فيما ستنشأ <strong>37%</strong> وظائف جديدة.
-            يُنصح باختيار التخصّصات المرنة القابلة للتطوير المستمرّ.
+          <p className="text-[11px] font-semibold text-gov-navy mb-1">{t('data.future.wefTitle')}</p>
+          <p className="text-sm text-gov-ink leading-relaxed">{t('data.future.wefBody')}</p>
+          <p className="flex items-start gap-1.5 mt-2 text-start">
+            <FileText size={12} className="text-gov-muted shrink-0 mt-[2px]" />
+            <span className="text-[10.5px] leading-relaxed text-gov-muted">
+              {t('data.sourceLabel')}:{' '}
+              <a
+                href={WEF_REPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gov-navy font-semibold underline underline-offset-2 decoration-gov-navy/30 hover:decoration-gov-navy"
+              >
+                {t('data.future.wefCite')}
+              </a>
+            </span>
           </p>
         </div>
       </div>
@@ -44,7 +62,10 @@ export default function Future() {
       {/* Projection chart */}
       <div className="p-4">
         <div className="gov-card p-4">
-          <h3 className="gov-section-title mb-1">المنحنى التنبّؤي للطلب على الوظائف</h3>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="gov-section-title">المنحنى التنبّؤي للطلب على الوظائف</h3>
+            <SourceNote source={illustrative} compact />
+          </div>
           <p className="text-[11px] text-gov-muted mb-3">2024 = 100 (مؤشّر أساس)</p>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={projections}>
@@ -67,20 +88,21 @@ export default function Future() {
         <h3 className="gov-section-title mb-2 flex items-center gap-2">
           <TrendingUp size={14} className="text-gov-ok" />
           المهن في نموّ مستمرّ
+          <SourceNote source={illustrative} compact className="ms-auto" />
         </h3>
         <div className="gov-card overflow-hidden">
           <table className="gov-table">
             <thead>
               <tr>
                 <th>المهنة</th>
-                <th className="text-left w-32">نسبة النموّ</th>
+                <th className="text-end w-32">نسبة النموّ</th>
               </tr>
             </thead>
             <tbody>
               {futureJobs.growing.map((j) => (
                 <tr key={j.name}>
                   <td className="font-medium text-gov-ink">{j.name}</td>
-                  <td className="text-left">
+                  <td className="text-end">
                     <div className="flex items-center justify-end gap-2">
                       <div className="w-16 h-1.5 bg-gov-bg rounded-full overflow-hidden">
                         <div className="h-full bg-gov-ok rounded-full" style={{ width: `${j.growth}%` }} />
@@ -100,20 +122,21 @@ export default function Future() {
         <h3 className="gov-section-title mb-2 flex items-center gap-2">
           <TrendingDown size={14} className="text-gov-danger" />
           المهن في تراجع
+          <SourceNote source={illustrative} compact className="ms-auto" />
         </h3>
         <div className="gov-card overflow-hidden">
           <table className="gov-table">
             <thead>
               <tr>
                 <th>المهنة</th>
-                <th className="text-left w-32">نسبة التراجع</th>
+                <th className="text-end w-32">نسبة التراجع</th>
               </tr>
             </thead>
             <tbody>
               {futureJobs.declining.map((j) => (
                 <tr key={j.name}>
                   <td className="font-medium text-gov-ink">{j.name}</td>
-                  <td className="text-left">
+                  <td className="text-end">
                     <div className="flex items-center justify-end gap-2">
                       <div className="w-16 h-1.5 bg-gov-bg rounded-full overflow-hidden">
                         <div className="h-full bg-gov-danger rounded-full" style={{ width: `${Math.abs(j.growth)}%` }} />
@@ -136,14 +159,14 @@ export default function Future() {
             <thead>
               <tr>
                 <th>المهنة</th>
-                <th className="text-left w-40">القطاع</th>
+                <th className="text-end w-40">القطاع</th>
               </tr>
             </thead>
             <tbody>
               {newJobs2030.map((j) => (
                 <tr key={j.name}>
                   <td className="font-medium text-gov-ink">{j.name}</td>
-                  <td className="text-left">
+                  <td className="text-end">
                     <span className="gov-badge gov-badge-info">{j.category}</span>
                   </td>
                 </tr>
@@ -160,10 +183,7 @@ export default function Future() {
             <AlertTriangle size={14} className="text-gov-warn shrink-0 mt-0.5" />
             <div>
               <p className="text-[11px] font-semibold text-gov-warn mb-1">تنبيه</p>
-              <p className="text-[11px] text-gov-body leading-relaxed">
-                التنبّؤات مبنيّة على نماذج إحصائيّة. الاتّجاهات الكلّيّة موثوقة، لكنّ الأرقام الفرديّة تقريبيّة. لا تُتّخذ
-                قرارات منفردة بناءً عليها.
-              </p>
+              <p className="text-[11px] text-gov-body leading-relaxed">{t('data.future.caution')}</p>
             </div>
           </div>
         </div>
@@ -172,12 +192,7 @@ export default function Future() {
       {/* Sources */}
       <div className="px-4 mt-3">
         <div className="bg-gov-bg-soft border border-gov-line rounded-gov p-3">
-          <div className="flex items-start gap-2">
-            <FileText size={14} className="text-gov-muted shrink-0 mt-0.5" />
-            <p className="text-[11px] text-gov-muted leading-relaxed">
-              المصادر: WEF Future of Jobs Report 2024، ILO Employment Outlook 2025، رؤية التحديث الاقتصادي 2033.
-            </p>
-          </div>
+          <SourceNote source={illustrative} note={t('data.note.projections')} />
         </div>
       </div>
     </div>

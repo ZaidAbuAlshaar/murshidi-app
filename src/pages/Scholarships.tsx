@@ -1,5 +1,7 @@
-import { Check, ExternalLink, FileText } from 'lucide-react';
+import { Check, ExternalLink } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
+import SourceNote from '../components/SourceNote';
+import { useLang } from '../i18n/LangContext';
 
 interface Scholarship {
   id: number;
@@ -36,6 +38,7 @@ const scholarships: Scholarship[] = [
 ];
 
 export default function Scholarships() {
+  const { t } = useLang();
   const eligible = scholarships.filter((s) => s.match >= 70);
   const others = scholarships.filter((s) => s.match < 70);
   const totalAmount = eligible.reduce((sum, s) => {
@@ -45,7 +48,7 @@ export default function Scholarships() {
 
   return (
     <div className="min-h-screen bg-gov-bg pb-24">
-      <PageHeader title="المنح الدراسيّة المتاحة" subtitle="استناداً إلى ظروفك ومعدّلك" />
+      <PageHeader title="المنح الدراسيّة المتاحة" subtitle={t('data.scholarships.subtitle')} />
 
       {/* Summary */}
       <div className="bg-white border-b border-gov-line p-4">
@@ -54,6 +57,7 @@ export default function Scholarships() {
           <Stat label="إجمالي القيمة" value={`${totalAmount.toLocaleString()} د.أ`} tone="ok" />
           <Stat label="إجمالي المنح" value={scholarships.length.toString()} />
         </div>
+        <SourceNote className="mt-3" source="illustrative" note={t('data.note.scholarships')} />
       </div>
 
       {/* Eligible */}
@@ -82,13 +86,7 @@ export default function Scholarships() {
       {/* Disclaimer */}
       <div className="px-4">
         <div className="bg-gov-bg-soft border border-gov-line rounded-gov p-3">
-          <div className="flex items-start gap-2">
-            <FileText size={14} className="text-gov-muted shrink-0 mt-0.5" />
-            <p className="text-[11px] text-gov-muted leading-relaxed">
-              تُحدَّث المعلومات شهريّاً بالتنسيق مع صندوق دعم الطالب الجامعي والجهات المانحة. التقديم النهائي يتمّ عبر
-              المنصّات الرسميّة لكلّ جهة.
-            </p>
-          </div>
+          <SourceNote source="illustrative" note={t('data.scholarships.verify')} />
         </div>
       </div>
     </div>
@@ -96,12 +94,13 @@ export default function Scholarships() {
 }
 
 function Card({ s }: { s: Scholarship }) {
+  const { t } = useLang();
   return (
     <div className="gov-card overflow-hidden">
       <div className="px-4 py-3 border-b border-gov-line">
-        <div className="flex items-start justify-between mb-1">
+        <div className="flex items-start justify-between gap-2 mb-1">
           <h4 className="text-sm font-bold text-gov-ink leading-tight flex-1">{s.name}</h4>
-          <span className="gov-badge gov-badge-info shrink-0">{s.match}% انسجام</span>
+          <span className="gov-badge gov-badge-neutral shrink-0">{t('data.scholarships.matchLabel')} {s.match}%</span>
         </div>
         <p className="text-[11px] text-gov-muted">{s.source}</p>
       </div>
@@ -110,18 +109,20 @@ function Card({ s }: { s: Scholarship }) {
           <tbody>
             <tr>
               <td className="text-gov-muted">القيمة الماليّة</td>
-              <td className="text-left font-bold tabular text-gov-ink">{s.amount}</td>
+              <td className="text-end font-bold tabular text-gov-ink">{s.amount}</td>
             </tr>
             <tr>
               <td className="text-gov-muted">نوع المنحة</td>
-              <td className="text-left font-semibold">{s.type}</td>
+              <td className="text-end font-semibold">{s.type}</td>
             </tr>
             <tr>
               <td className="text-gov-muted">آخر موعد للتقديم</td>
-              <td className="text-left font-semibold text-gov-warn">{s.deadline}</td>
+              <td className="text-end font-semibold text-gov-warn">{s.deadline}</td>
             </tr>
           </tbody>
         </table>
+
+        <SourceNote className="mb-3" source="illustrative" note={t('data.scholarships.verify')} />
 
         <p className="text-[11px] font-semibold text-gov-body mb-1.5">شروط الأهليّة:</p>
         <ul className="space-y-1 mb-3">

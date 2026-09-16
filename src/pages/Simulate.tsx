@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { RotateCcw, Lightbulb, Star, AlertTriangle, FileText } from 'lucide-react';
+import { RotateCcw, Lightbulb, Star, AlertTriangle } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import { majorsData, type Major } from '../data/majors';
+import SourceNote from '../components/SourceNote';
+import { majorsData, DATASET_SOURCES, type Major } from '../data/majors';
+import { useLang } from '../i18n/LangContext';
 
 type ScenarioType = 'likely' | 'best' | 'worst';
 
@@ -61,6 +63,8 @@ const scenarios = [
 ];
 
 export default function Simulate() {
+  const { t } = useLang();
+  const illustrative = DATASET_SOURCES.majors;
   const [selected, setSelected] = useState<Major | null>(null);
   const [scenario, setScenario] = useState<ScenarioType>('likely');
 
@@ -71,10 +75,8 @@ export default function Simulate() {
 
         <div className="p-4">
           <div className="bg-gov-bg-soft border border-gov-line rounded-gov p-3 mb-3">
-            <p className="text-xs text-gov-body leading-relaxed">
-              تستند المحاكاة إلى نماذج إحصائيّة مبنيّة على بيانات مسارات الخرّيجين الفعليّة من DOS، وتُولّد ثلاثة سيناريوهات
-              لكلّ تخصّص (الأكثر احتمالاً، الأفضل، الأسوأ).
-            </p>
+            <p className="text-xs text-gov-body leading-relaxed">{t('data.simulate.intro')}</p>
+            <SourceNote className="mt-2" source={illustrative} note={t('data.note.simulation')} />
           </div>
 
           <p className="gov-section-title mb-2">اختيار التخصّص</p>
@@ -83,7 +85,7 @@ export default function Simulate() {
               <button
                 key={m.id}
                 onClick={() => setSelected(m)}
-                className="w-full px-4 py-3 text-right hover:bg-gov-bg-soft"
+                className="w-full px-4 py-3 text-start hover:bg-gov-bg-soft"
               >
                 <p className="text-sm font-semibold text-gov-ink">{m.nameAr}</p>
                 <p className="text-[11px] text-gov-muted mt-0.5">{m.nameEn}</p>
@@ -110,7 +112,8 @@ export default function Simulate() {
       />
 
       {/* Scenario tabs */}
-      <div className="bg-white border-b border-gov-line p-3 grid grid-cols-3 gap-2">
+      <div className="bg-white border-b border-gov-line p-3">
+        <div className="grid grid-cols-3 gap-2">
         {scenarios.map((s) => {
           const active = scenario === s.type;
           const accent =
@@ -131,11 +134,16 @@ export default function Simulate() {
             </button>
           );
         })}
+        </div>
+        <SourceNote className="mt-2.5" source={illustrative} note={t('data.simulate.probabilityNote')} />
       </div>
 
       {/* Timeline */}
       <div className="p-4">
-        <p className="gov-section-title mb-3">جدول الأحداث الزمني</p>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <p className="gov-section-title">جدول الأحداث الزمني</p>
+          <SourceNote source={illustrative} compact />
+        </div>
         <div className="gov-card">
           <table className="gov-table">
             <thead>
@@ -176,12 +184,8 @@ export default function Simulate() {
       {/* Source */}
       <div className="px-4 mt-3">
         <div className="bg-gov-bg-soft border border-gov-line rounded-gov p-3">
-          <div className="flex items-start gap-2">
-            <FileText size={14} className="text-gov-muted shrink-0 mt-0.5" />
-            <p className="text-[11px] text-gov-muted leading-relaxed">
-              نموذج المحاكاة مبني على نماذج Time-Series من Prophet ومعدّلات الخرّيجين الفعليّة من DOS بين 2018–2024.
-            </p>
-          </div>
+          <p className="text-[11px] text-gov-body leading-relaxed mb-2 text-start">{t('data.simulate.intro')}</p>
+          <SourceNote source={illustrative} note={t('data.note.simulation')} />
         </div>
       </div>
     </div>

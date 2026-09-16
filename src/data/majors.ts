@@ -1,5 +1,25 @@
-// بيانات حقيقية من DOS الأردني + وزارة التعليم العالي + Akhtaboot/Bayt
-// Real data from DOS Jordan + Ministry of Higher Education + Job Boards
+// ما مصدر هذه الأرقام؟ / Where do these numbers come from?
+//
+// The per-major figures below (first / 5-year / 10-year salary, unemployment
+// rate, job openings, 2030 growth, satisfaction score, tuition and acceptance
+// average) are ILLUSTRATIVE. They were inherited from an earlier build and
+// could not be traced back to a published release, so every record carries
+// `source: 'illustrative'` and every screen that renders them shows the
+// illustrative badge next to the number. They are kept — not deleted —
+// because they demonstrate how the tools work, and the honest label is worth
+// more than an empty screen.
+//
+// `averageAcceptance` deserves its own warning: it is an indicative average
+// used by the ROI calculator and the AI advisor. It is NOT the published
+// competitive minimum. The 2026/2027 minimums had not been announced by the
+// Unified Admission Coordination Unit when this build was cut.
+//
+// The one figure in this file that IS traceable is `dosUnemployment` at the
+// bottom: the Department of Statistics release of 7 Sep 2026.
+// Earlier versions of this header claimed the whole table came from
+// "DOS Jordan + Ministry of Higher Education + Akhtaboot/Bayt". It did not.
+
+import type { SourceId } from './sources';
 
 export interface Major {
   id: string;
@@ -7,21 +27,23 @@ export interface Major {
   nameEn: string;
   icon: string;
   color: string;
-  unemploymentRate: number; // % - DOS Q1 2026
-  firstSalary: number; // JOD/month
-  fiveYearSalary: number;
-  tenYearSalary: number;
+  unemploymentRate: number; // % — illustrative, not a DOS series
+  firstSalary: number; // JOD/month — illustrative
+  fiveYearSalary: number; // illustrative
+  tenYearSalary: number; // illustrative
   duration: number; // years
-  averageAcceptance: number; // معدل القبول المتوسط
-  yearlyTuitionGov: number; // حكومي
-  yearlyTuitionPrivate: number; // خاص
+  averageAcceptance: number; // معدّل قبول استرشادي — ليس الحدّ الأدنى التنافسي المعتمد
+  yearlyTuitionGov: number; // حكومي — تقديري
+  yearlyTuitionPrivate: number; // خاص — تقديري
   matchedPersonality: string[];
-  futureGrowth: number; // % growth by 2030
-  jobOpeningsLast30Days: number;
+  futureGrowth: number; // % growth by 2030 — illustrative
+  jobOpeningsLast30Days: number; // illustrative, not a live board count
   topSkills: string[];
-  satisfactionScore: number; // out of 100
+  satisfactionScore: number; // out of 100 — illustrative
   description: string;
   category: 'tech' | 'medical' | 'engineering' | 'business' | 'arts' | 'education' | 'science';
+  /** Where this record's figures come from. `illustrative` = badge it on screen. */
+  source: SourceId;
 }
 
 export const majorsData: Major[] = [
@@ -46,6 +68,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 87,
     description: 'مستقبل واعد، مرونة في العمل عن بُعد، طلب عالٍ محلياً وعالمياً',
     category: 'tech',
+    source: 'illustrative',
   },
   {
     id: 'medicine',
@@ -68,6 +91,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 81,
     description: 'مهنة نبيلة وراتب جيد لكن دراسة طويلة وتكاليف مرتفعة',
     category: 'medical',
+    source: 'illustrative',
   },
   {
     id: 'pharmacy',
@@ -90,6 +114,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 72,
     description: 'استقرار وظيفي معقول، فرص للعمل في القطاع الخاص والصناعة',
     category: 'medical',
+    source: 'illustrative',
   },
   {
     id: 'civil-eng',
@@ -112,6 +137,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 68,
     description: 'فرص في الخليج جيدة، السوق المحلي متذبذب',
     category: 'engineering',
+    source: 'illustrative',
   },
   {
     id: 'architecture',
@@ -134,6 +160,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 64,
     description: 'تخصص جميل لكن سوق محدود، يحتاج إبداعاً وصبراً',
     category: 'engineering',
+    source: 'illustrative',
   },
   {
     id: 'media',
@@ -156,6 +183,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 52,
     description: 'الإعلام التقليدي يتراجع، الـ digital هو المستقبل — تحتاج تخصصاً تقنياً مع الإعلام',
     category: 'arts',
+    source: 'illustrative',
   },
   {
     id: 'law',
@@ -178,6 +206,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 65,
     description: 'يتطلب صبراً للوصول للمكاسب، التخصص في الشركات أربح من المحاماة',
     category: 'business',
+    source: 'illustrative',
   },
   {
     id: 'business',
@@ -200,6 +229,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 70,
     description: 'تخصص عام، النجاح يعتمد على المهارات الشخصية والشبكة',
     category: 'business',
+    source: 'illustrative',
   },
   {
     id: 'nursing',
@@ -222,6 +252,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 76,
     description: 'طلب عالٍ في الخليج وأوروبا، فرصة سفر ممتازة',
     category: 'medical',
+    source: 'illustrative',
   },
   {
     id: 'data-science',
@@ -244,6 +275,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 91,
     description: 'الأعلى نمواً عالمياً، رواتب ممتازة وفرص remote عالمية',
     category: 'tech',
+    source: 'illustrative',
   },
   {
     id: 'cyber',
@@ -266,6 +298,7 @@ export const majorsData: Major[] = [
     satisfactionScore: 88,
     description: 'الطلب يتجاوز العرض في الأردن — تخصص نادر مطلوب جداً',
     category: 'tech',
+    source: 'illustrative',
   },
   {
     id: 'accounting',
@@ -288,16 +321,18 @@ export const majorsData: Major[] = [
     satisfactionScore: 62,
     description: 'AI يبتلع المحاسبة التقليدية — تحتاج تخصصاً متقدماً (CPA, CMA)',
     category: 'business',
+    source: 'illustrative',
   },
 ];
 
-// Universities data
+// Universities data — names, public/private status and city are factual.
 export interface University {
   id: string;
   nameAr: string;
   nameEn: string;
   type: 'حكومي' | 'خاص';
   city: string;
+  /** Display order in this list only — NOT an official ranking, and not rendered as one. */
   ranking: number;
 }
 
@@ -314,7 +349,9 @@ export const universitiesData: University[] = [
   { id: 'zu', nameAr: 'الزرقاء الأهلية', nameEn: 'Zarqa University', type: 'خاص', city: 'الزرقاء', ranking: 10 },
 ];
 
-// Live job market trends
+// Job market trends — ILLUSTRATIVE. These are not scraped from any job board
+// and not updated live; the counts exist to show the shape of the observatory.
+// Every screen that renders them carries the illustrative badge.
 export const jobMarketTrends = {
   topHiring: [
     { name: 'مطور برمجيات', count: 1247, change: 23 },
@@ -339,7 +376,11 @@ export const jobMarketTrends = {
   ],
 };
 
-// Statistics for dashboard
+// Dashboard statistics — ILLUSTRATIVE. The platform is at demo stage, so
+// `studentsHelped`, `decisionsImproved`, `jobsScraped` and `totalSavedJOD`
+// describe no real usage; `graduateUnemployment` is NOT a DOS series (the
+// Q2 2026 release carries no breakdown by educational level). Kept for the
+// impact panel, badged wherever shown.
 export const nationalStats = {
   totalStudents: 100000,
   graduateUnemployment: 26.4,
@@ -349,7 +390,25 @@ export const nationalStats = {
   totalSavedJOD: 2400000,
 };
 
-// Future jobs prediction
+// The one traceable figure in this file.
+// Department of Statistics press release, published 7 Sep 2026:
+// unemployment for the total population (Jordanians and non-Jordanians)
+// fell to 16.1% in Q2 2026 from 16.5% in Q2 2025; among Jordanians it was
+// 21.0% against 21.3% a year earlier.
+// https://dosweb.dos.gov.jo/unemp_092026/
+export const dosUnemployment = {
+  totalPopulation: 16.1,
+  totalPopulationPrevYear: 16.5,
+  jordanians: 21.0,
+  jordaniansPrevYear: 21.3,
+  periodAr: 'الربع الثاني 2026',
+  periodEn: 'Q2 2026',
+  source: 'dos-q2-2026' as SourceId,
+};
+
+// Future jobs prediction — ILLUSTRATIVE growth percentages. These are not a
+// published forecast; the only sourced forward-looking figure in the app is
+// the WEF Future of Jobs Report 2025 headline quoted on the Future page.
 export const futureJobs = {
   growing: [
     { name: 'AI/ML Engineer', growth: 89, year: 2030 },
@@ -369,3 +428,13 @@ export const futureJobs = {
     { name: 'Travel Agent', growth: -52, year: 2030 },
   ],
 };
+
+// One place a reviewer can read the truth about every dataset in this file.
+// Pages import from here so the badge and the data can never drift apart.
+export const DATASET_SOURCES = {
+  majors: 'illustrative',
+  jobMarketTrends: 'illustrative',
+  futureJobs: 'illustrative',
+  nationalStats: 'illustrative',
+  dosUnemployment: 'dos-q2-2026',
+} satisfies Record<string, SourceId>;
