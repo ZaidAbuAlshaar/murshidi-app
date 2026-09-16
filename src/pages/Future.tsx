@@ -17,7 +17,7 @@ import { futureJobs, DATASET_SOURCES, type FutureJob } from '../data/majors';
 import { useLang } from '../i18n/LangContext';
 import { fill } from '../i18n/ns/data';
 import type { TranslationKey } from '../i18n/translations';
-import { signedPct } from '../lib/numerals';
+import { num, signedPct } from '../lib/numerals';
 
 const WEF_REPORT_URL = 'https://www.weforum.org/publications/the-future-of-jobs-report-2025/';
 
@@ -105,6 +105,7 @@ export default function Future() {
                 tickLine={false}
               />
               <YAxis
+                tickFormatter={(v: number) => num(v)}
                 orientation={rtl ? 'right' : 'left'}
                 tick={{ fill: '#374151', fontSize: 10 }}
                 tickLine={false}

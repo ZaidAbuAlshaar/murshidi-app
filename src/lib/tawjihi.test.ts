@@ -36,9 +36,10 @@ import {
   majorsFor,
   minimumAverageFor,
   partTwoLabel,
-  vocationalPrograms,
+  pathConstrainsChoices,
   type LegacyBranchId,
   type StudyPath,
+  vocationalPrograms,
 } from './tawjihi';
 
 const OFFICIAL_PATH = new URL('../../docs/tawjihi-2026-official.json', import.meta.url);
@@ -363,4 +364,31 @@ test('computeAverage weights 30/70 of 1000 and refuses an incomplete input', () 
 
   assert.equal(computeAverage({ partOneMarks: 300, partTwoMarks: null }).status, 'incomplete');
   assert.equal(computeAverage({ partOneMarks: null, partTwoMarks: null }).status, 'incomplete');
+});
+
+// ── Regression: an unpublished table must not read as "nothing is open" ──────
+//
+// A previous-plan student has a COMPLETE path — they picked العلمي — but the
+// Higher Education Council published its college table for the new plan only,
+// so every major comes back `unpublished` for them. Code that filtered on
+// "eligible or technical" therefore produced an empty list and told that student
+// their average reached nothing, on both the interests test and the offline
+// advisor. `pathConstrainsChoices` is the guard; these assertions are why.
+test('a previous-plan path completes but must not filter any major away', () => {
+  const legacy: StudyPath = { track: 'legacy', branch: 'scientific' };
+  assert.equal(isPathComplete(legacy), true, 'a legacy branch is a finished choice');
+  assert.equal(pathConstrainsChoices(legacy), false, 'but it has no published table to filter with');
+
+  const reach = majorsFor(legacy);
+  assert.equal(reach.eligible.length, 0);
+  assert.equal(reach.technical.length, 0);
+  assert.ok(reach.unknown.length > 0, 'every major is unknown, not blocked');
+  assert.equal(reach.blocked.length, 0, 'nothing may be reported as blocked on an unpublished table');
+});
+
+test('a complete new-plan path does constrain', () => {
+  assert.equal(pathConstrainsChoices({ track: 'academic', field: 'health' }), true);
+  assert.equal(pathConstrainsChoices({ track: 'vocational', program: 'it' }), true);
+  assert.equal(pathConstrainsChoices({ track: 'academic' }), false, 'a track without a field is not finished');
+  assert.equal(pathConstrainsChoices(null), false);
 });

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import SourceNote from '../components/SourceNote';
-import { majorsData, universitiesData, DATASET_SOURCES, type Major, type University } from '../data/majors';
+import { majorsData, DATASET_SOURCES, type Major } from '../data/majors';
 import { useLang } from '../i18n/LangContext';
 import { useAuth } from '../context/AuthContext';
 import { governorates, localizeCity } from '../lib/account';
@@ -27,7 +27,6 @@ const HOUSING_AND_BOOKS = 1500;
 
 interface ROIResult {
   major: Major;
-  university: University;
   /** Tuition + transport + housing/books for ONE year — the figure the budget is compared against. */
   annualCost: number;
   totalCost: number;
@@ -122,7 +121,6 @@ export default function ROICalculator() {
 
   const results: ROIResult[] = useMemo(() => {
     if (step !== 2 || gpa === null) return [];
-    const uni = universitiesData[0];
     return selectedMajors
       .map((id) => {
         const m = majorsData.find((x) => x.id === id)!;
@@ -139,7 +137,6 @@ export default function ROICalculator() {
         const annualReturn = (Math.pow(tenYearIncome / totalCost, 1 / 10) - 1) * 100;
         return {
           major: m,
-          university: uni,
           annualCost,
           totalCost,
           totalIncome: tenYearIncome,
@@ -792,7 +789,9 @@ function ResultRow({ r, rank, t, lang }: {
           </span>
           <div className="min-w-0 text-start">
             <p className="text-sm font-bold text-gov-ink">{lang === 'ar' ? r.major.nameAr : r.major.nameEn}</p>
-            <p className="text-[10px] text-gov-muted">{lang === 'ar' ? r.university.nameAr : r.university.nameEn}</p>
+            <p className="text-[10px] text-gov-muted">
+              {r.acceptable ? t('calc.govAccepted') : t('calc.privateOnly')}
+            </p>
           </div>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">

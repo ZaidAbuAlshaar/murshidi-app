@@ -27,7 +27,7 @@ export default function PageHeader({ title, subtitle, back = true, right }: Prop
           {back && (
             <button
               onClick={() => navigate(-1)}
-              className="w-9 h-9 rounded-md border border-gov-line flex items-center justify-center text-gov-body hover:bg-gov-bg-soft shrink-0"
+              className="w-11 h-11 rounded-md border border-gov-line flex items-center justify-center text-gov-body hover:bg-gov-bg-soft shrink-0"
               aria-label={t('btn.back')}
             >
               <BackIcon size={18} />

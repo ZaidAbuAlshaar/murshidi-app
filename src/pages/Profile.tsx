@@ -11,7 +11,7 @@ import type { TranslationKey } from '../i18n/translations';
 import { useAuth } from '../context/AuthContext';
 import { StudyPathPicker } from '../components/PathPicker';
 import {
-  governorates, hasCompletePath, initialsOf, isNameAvailable, localizeCity, passwordHashMode,
+  governorates, hasCompletePath, initialsOf, isNameAvailable, localizeCity, passwordHashMode, storedHashModeForUser,
   validateGrade,
 } from '../lib/account';
 import type { StudyPath } from '../lib/account';
@@ -73,7 +73,12 @@ export default function Profile() {
 
   // The privacy list below states what happened to the password. Which of the
   // two lines is true depends on whether this origin has WebCrypto at all.
-  const degraded = useMemo(() => passwordHashMode() === 'checksum', []);
+  // Describe the record this account actually carries, not what the browser in
+  // front of us could produce now — they differ for an account made over http.
+  const degraded = useMemo(
+    () => (user ? storedHashModeForUser(user.id) : passwordHashMode()) === 'checksum',
+    [user],
+  );
 
   const removeSaved = useCallback(
     (id: string) => {

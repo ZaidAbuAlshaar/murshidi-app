@@ -11,8 +11,10 @@
 //                   21.0% among Jordanians. The release carries no breakdown
 //                   by educational level, so no "graduate unemployment"
 //                   figure in this app may be attributed to it.
-//  - admhec-2026  : the Unified Admission Coordination Unit publishes the
-//                   competitive minimums per specialisation; the 2026/2027
+//  - admhec-2026  : the admission policy's published FLOOR to be allowed to
+//                   apply, from Higher Education Council decision 295/2026.
+//                   NOT the competitive minimum per specialisation, which for
+//                   2026/2027 was still unpublished when this was written; the
 //                   minimums had not been announced when this build was cut,
 //                   which is why acceptance averages here are labelled
 //                   indicative rather than official.
@@ -41,8 +43,8 @@ export const SOURCES: Record<SourceId, SourceRef> = {
   },
   'admhec-2026': {
     id: 'admhec-2026',
-    labelAr: 'وحدة تنسيق القبول الموحّد — الحدود الدنيا التنافسيّة المنشورة',
-    labelEn: 'Unified Admission Coordination Unit — published competitive minimums',
+    labelAr: 'مجلس التعليم العالي — السياسة العامّة للقبول 2026/2027 (الحدّ الأدنى للالتحاق)',
+    labelEn: 'Higher Education Council — 2026/2027 admission policy (minimum to apply)',
     url: 'https://www.admhec.gov.jo',
   },
   illustrative: {

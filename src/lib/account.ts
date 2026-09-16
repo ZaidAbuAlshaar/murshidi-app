@@ -219,6 +219,33 @@ export function passwordHashMode(): PasswordHashMode {
   }
 }
 
+/**
+ * Which digest actually produced THIS account's stored record.
+ *
+ * `passwordHashMode()` answers a different question — what the browser in front
+ * of you can do right now — and the two disagree exactly when it matters: an
+ * account created over http on a LAN IP carries a checksum, and opening the same
+ * account over https would otherwise have the app claim SHA-256 about a record
+ * that is not one. Any screen describing an EXISTING account must read this.
+ */
+export function storedHashMode(account: Pick<Account, 'passHash'> | null | undefined): PasswordHashMode | null {
+  const stored = account?.passHash;
+  if (!stored) return null;
+  if (stored.startsWith(CHECKSUM_PREFIX) || stored.startsWith(LEGACY_CHECKSUM_PREFIX)) return 'checksum';
+  return 'sha-256';
+}
+
+/**
+ * The same answer for a signed-in profile, which deliberately does not expose
+ * the digest itself. Falls back to what this context can do when the record
+ * cannot be read, so a caller always gets an answer it can show.
+ */
+export function storedHashModeForUser(userId: string | null | undefined): PasswordHashMode {
+  if (!userId) return passwordHashMode();
+  const account = getUsers().find((u) => u.id === userId);
+  return storedHashMode(account) ?? passwordHashMode();
+}
+
 async function strongDigest(text: string): Promise<string | null> {
   if (passwordHashMode() !== 'sha-256') return null;
   try {

@@ -27,7 +27,7 @@ import type { Major } from '../data/majors';
 import type { SourceId } from '../data/sources';
 import { categoryLabel, majorName } from './ai/grounding';
 import { readStudyPath } from './ai/student';
-import { eligibilityFor, isPathComplete, partTwoLabel, pathLabel } from './tawjihi';
+import { eligibilityFor, isPathComplete, partTwoLabel, pathConstrainsChoices, pathLabel } from './tawjihi';
 import type { Eligibility, StudyPath } from './tawjihi';
 import type { Lang, TranslationKey } from '../i18n/translations';
 
@@ -372,7 +372,10 @@ export function reachableMajors(
   path: StudyPath | null = null,
 ): MajorMatch[] {
   if (typeof grade !== 'number' || !Number.isFinite(grade)) return [];
-  const usable = isPathComplete(path) ? path : null;
+  // Only a path with a published college table may narrow the list. A
+  // previous-plan branch has none, so it filters nothing rather than filtering
+  // everything away.
+  const usable = pathConstrainsChoices(path) ? path : null;
   return matchMajors(scores)
     .filter((match) => reachFor(grade, match.major.averageAcceptance).reach !== 'beyond')
     .filter((match) => {

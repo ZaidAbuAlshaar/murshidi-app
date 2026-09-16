@@ -35,7 +35,7 @@ const LANGUAGE_COUNT = String(Object.keys(translations).length);
 const slides: Slide[] = [
   {
     icon: BookOpen,
-    iconBg: 'bg-gov-navy/8',
+    iconBg: 'bg-gov-navy/[0.08]',
     iconColor: 'text-gov-navy',
     badgeKey: 'splash.slide1.badge',
     titleKey: 'splash.slide1.title',
@@ -63,7 +63,7 @@ const slides: Slide[] = [
   },
   {
     icon: Sparkles,
-    iconBg: 'bg-gov-navy/8',
+    iconBg: 'bg-gov-navy/[0.08]',
     iconColor: 'text-gov-navy',
     badgeKey: 'splash.slide4.badge',
     titleKey: 'splash.slide4.title',

@@ -20,7 +20,8 @@ import type { TranslationKey } from '../i18n/translations';
 const COLORS = ['#003F7D', '#007A4D', '#A88631'];
 
 export default function Compare() {
-  const { t, lang } = useLang();
+  const { t, lang, dir } = useLang();
+  const rtl = dir === 'rtl';
   const { user } = useAuth();
   const illustrative = DATASET_SOURCES.majors;
   const path: StudyPath | null = user?.path ?? null;
@@ -274,9 +275,27 @@ export default function Compare() {
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={salaryData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis dataKey="year" tick={{ fill: '#374151', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#374151', fontSize: 10 }} />
-              <Tooltip />
+              <XAxis
+                dataKey="year"
+                reversed={rtl}
+                tick={{ fill: '#374151', fontSize: 11 }}
+              />
+              <YAxis
+                orientation={rtl ? 'right' : 'left'}
+                tick={{ fill: '#374151', fontSize: 10 }}
+                tickFormatter={(v: number) => num(v)}
+                width={44}
+              />
+              <Tooltip
+                formatter={(v) => (typeof v === 'number' ? jod(v, lang) : String(v ?? ''))}
+                contentStyle={{
+                  direction: dir,
+                  fontSize: 11,
+                  textAlign: rtl ? 'right' : 'left',
+                  borderRadius: 6,
+                  border: '1px solid #E5E7EB',
+                }}
+              />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               {selected.map((m, i) => (
                 <Bar key={m.id} name={nameOf(m)} dataKey={m.id} fill={COLORS[i]} radius={[4, 4, 0, 0]} />
@@ -307,7 +326,7 @@ export default function Compare() {
               <h3 className="text-base font-bold text-gov-ink">{t('tools.compare.pickTitle')}</h3>
               <button
                 onClick={() => setPicker(null)}
-                className="w-8 h-8 rounded-md border border-gov-line flex items-center justify-center text-gov-body"
+                className="w-11 h-11 rounded-md border border-gov-line flex items-center justify-center text-gov-body"
                 aria-label={t('btn.cancel')}
               >
                 <X size={14} />

@@ -22,6 +22,7 @@ import {
   eligibilityFor,
   isPathComplete,
   majorsFor,
+  pathConstrainsChoices,
   minimumAverageFor,
   partTwoLabel,
   pathLabel,
@@ -155,6 +156,9 @@ const SOURCE_LINE: Record<Lang, string> = {
  * degree and the app may never merge the two.
  */
 function reachBlock(path: StudyPath, grade: number | null, lang: Lang, limit = 4): string[] {
+  // No published college table for this path means nothing to list here — and
+  // listing nothing is not the same as saying nothing is open.
+  if (!pathConstrainsChoices(path)) return [];
   const reach = majorsFor(path);
   const order = (items: Major[]) =>
     [...items].sort((a, b) => {
@@ -346,7 +350,7 @@ function factsheet(major: Major, lang: Lang, grade: number | null): string[] {
 function nearestAlternatives(major: Major, grade: number | null, path: StudyPath | null, limit = 4): Major[] {
   const ceiling = grade ?? major.averageAcceptance - 5;
   // An alternative the student's own track does not open is not an alternative.
-  const reach = path ? majorsFor(path) : null;
+  const reach = pathConstrainsChoices(path) ? majorsFor(path) : null;
   const open = reach ? new Set([...reach.eligible, ...reach.technical]) : null;
   return majorsData
     .filter((m) => m.id !== major.id && m.averageAcceptance <= ceiling && (!open || open.has(m.id)))
@@ -376,7 +380,7 @@ function alternativesBlock(items: Major[], lang: Lang): string[] {
 function eligibilityAnswer(grade: number, lang: Lang, path: StudyPath | null): string {
   // With a known path the list is drawn only from what that path opens: an
   // average cannot put a student into a college their track does not reach.
-  const reach = path ? majorsFor(path) : null;
+  const reach = pathConstrainsChoices(path) ? majorsFor(path) : null;
   const open = reach ? new Set([...reach.eligible, ...reach.technical]) : null;
   const pool = open ? majorsData.filter((m) => open.has(m.id)) : majorsData;
 

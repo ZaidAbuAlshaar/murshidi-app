@@ -536,7 +536,7 @@ function ChatThread({ storageKey, profile }: { storageKey: string; profile: AiPr
       {/* Composer — sits above the bottom nav, drops to the edge when the keyboard opens */}
       <div
         className="fixed inset-x-0 bg-white border-t border-gov-line p-3 z-30 transition-all"
-        style={{ bottom: keyboardOpen ? 0 : '64px' }}
+        style={{ bottom: keyboardOpen ? 0 : 'calc(env(safe-area-inset-bottom, 0px) + 64px)' }}
       >
         <div className="flex items-center gap-2">
           <input

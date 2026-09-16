@@ -10,6 +10,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "node scripts/build-pages.mjs",
+    "build:apk": "npm run build && npx cap sync android",
     "lint": "eslint .",
     "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/ts-test-register.mjs --test src/lib/tawjihi.test.ts",
     "preview": "vite preview",

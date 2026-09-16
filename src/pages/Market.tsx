@@ -34,7 +34,7 @@ import {
 } from '../data/majors';
 import { useLang } from '../i18n/LangContext';
 import { fill } from '../i18n/ns/data';
-import { num, pct, signedPct, jod } from '../lib/numerals';
+import { jod, num, pct, signedPct } from '../lib/numerals';
 
 /** Chart palette, one colour per sector, shared by the trend chart and the pie. */
 const SECTOR_COLOR: Record<PostingSectorId, string> = {
@@ -115,6 +115,7 @@ export default function Market() {
                 tickLine={false}
               />
               <YAxis
+                tickFormatter={(v: number) => num(v)}
                 orientation={rtl ? 'right' : 'left'}
                 tick={{ fill: '#374151', fontSize: 10 }}
                 tickLine={false}

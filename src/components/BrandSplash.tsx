@@ -192,7 +192,7 @@ export default function BrandSplash({ onDone }: Props) {
             <span className="text-[12px] font-semibold text-gov-ink">{t('app.kingdom')}</span>
           </div>
           <span className="text-[11px] text-gov-muted leading-snug">{t('app.ministry')}</span>
-          <span className="text-[10px] text-gov-muted/80 leading-snug">
+          <span className="text-[11px] text-gov-body leading-snug">
             {t('splash.brand.ministryRole')}
           </span>
         </div>

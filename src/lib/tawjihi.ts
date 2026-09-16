@@ -122,6 +122,21 @@ export function isPathComplete(path: StudyPath | null | undefined): boolean {
   return false;
 }
 
+/**
+ * True only when this path can actually narrow a list of majors.
+ *
+ * `isPathComplete` answers "did the student finish choosing?", which is true for
+ * a previous-plan student who picked العلمي. But the Higher Education Council
+ * published its college table for the NEW plan only, so for `legacy` every major
+ * comes back `unpublished` — and code that filters on "eligible or technical"
+ * then produces an empty list and tells that student nothing is open to them.
+ * Filter on this instead: no published table means no filtering, not no options.
+ */
+export function pathConstrainsChoices(path: StudyPath | null | undefined): boolean {
+  if (!isPathComplete(path) || !path) return false;
+  return path.track === 'academic' || path.track === 'vocational';
+}
+
 export function pathLabel(path: StudyPath | null | undefined, lang: 'ar' | 'en'): string {
   if (!path) return lang === 'ar' ? 'غير محدّد' : 'Not set';
   if (path.track === 'academic') {
