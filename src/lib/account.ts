@@ -449,11 +449,9 @@ export async function seedAccount(input: SeedInput): Promise<Account | null> {
     passHash: await hashPassword(DEMO_PASSWORD),
   };
   if (!write(USERS_KEY, [account]) || !write(SESSION_KEY, account.id)) return null;
-  try {
-    localStorage.setItem(ONBOARDED_KEY, '1');
-  } catch {
-    /* onboarding flag is best-effort */
-  }
+  // Deliberately NOT marking onboarding complete: the introduction slides are
+  // part of what a demo shows, so the first launch still plays them and only
+  // then lands on the app — already signed in.
   setGuestMode(false);
   return account;
 }

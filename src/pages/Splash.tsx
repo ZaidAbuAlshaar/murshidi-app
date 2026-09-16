@@ -7,7 +7,6 @@ import {
 import { useLang } from '../i18n/LangContext';
 import { translations, type TranslationKey } from '../i18n/translations';
 import { isOnboarded, setOnboarded } from '../lib/account';
-import { useAuth } from '../context/AuthContext';
 import { majorsData, universitiesData } from '../data/majors';
 import BrandSplash from '../components/BrandSplash';
 import MizanLogo from '../components/MizanLogo';
@@ -80,18 +79,16 @@ export default function Splash() {
   const navigate = useNavigate();
   const { t, dir } = useLang();
 
-  // Someone already signed in has nothing to be onboarded about — and on a fresh
-  // device the demo identity is seeded asynchronously, so this is read when the
-  // brand frame ENDS rather than when it starts, by which time auth has settled.
-  const { user } = useAuth();
+  // Read when the brand frame ENDS rather than when it starts: on a fresh device
+  // the demo identity is seeded asynchronously and may finish in between.
   const [returningVisitor] = useState(() => isOnboarded());
   const [phase, setPhase] = useState<'brand' | 'slides'>('brand');
   const [step, setStep] = useState(0);
 
   const handleBrandDone = useCallback(() => {
-    if (returningVisitor || user || isOnboarded()) navigate('/home', { replace: true });
+    if (returningVisitor || isOnboarded()) navigate('/home', { replace: true });
     else setPhase('slides');
-  }, [returningVisitor, user, navigate]);
+  }, [returningVisitor, navigate]);
 
   const finish = () => {
     setOnboarded();
