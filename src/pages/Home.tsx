@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import {
   Calculator, BarChart3, Sparkles, Brain, Users, MessageCircle,
-  TrendingUp, GraduationCap, Wallet, ChevronLeft, ChevronRight, FileText,
+  TrendingUp, GraduationCap, Wallet, ChevronLeft, ChevronRight, FileText, CheckCircle2,
 } from 'lucide-react';
 import OfficialHeader from '../components/OfficialHeader';
-import { jobMarketTrends, majorsData, nationalStats } from '../data/majors';
+import { jobMarketTrends, nationalStats } from '../data/majors';
 import { useLang } from '../i18n/LangContext';
 import type { TranslationKey } from '../i18n/translations';
 import { getSessionUser } from '../lib/account';
@@ -62,61 +62,39 @@ export default function Home() {
 
       {/* Hook */}
       <div className="p-4">
-        <div className="overflow-hidden rounded-2xl bg-gov-navy text-white shadow-[0_12px_32px_-12px_rgba(1,48,112,0.55)]">
-          <div className="h-1 bg-gov-gold" />
-          <div className="p-5">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-px bg-gov-gold" />
-              <p className="text-[11px] font-bold text-gov-gold tracking-wide">
-                {lang === 'ar' ? 'دليلك لاختيار التخصّص' : 'Your major-choice guide'}
-              </p>
-              <span className="gov-badge gov-badge-success shrink-0 ms-auto">{t('pages.home.recommended')}</span>
-            </div>
-            <h2 className="text-[22px] font-bold leading-snug mt-2.5">
-              {t('pages.home.startCalc')}
-            </h2>
-            <p className="text-[13px] text-white/75 leading-relaxed mt-1.5">
-              {t('pages.home.startCalcDesc')}
+        <div className="relative overflow-hidden rounded-3xl bg-gov-navy text-white shadow-[0_16px_40px_-16px_rgba(1,48,112,0.6)]">
+          <div className="pointer-events-none absolute -top-24 -left-24 w-64 h-64 rounded-full border-[22px] border-white/5" />
+          <div className="pointer-events-none absolute -top-12 -left-12 w-40 h-40 rounded-full border-[14px] border-white/5" />
+          <div className="relative p-5">
+            <p className="text-[12px] font-semibold text-gov-gold">
+              {lang === 'ar' ? 'مُرشِدي • من الحيرة إلى قرار' : 'Murshidi • From confusion to decision'}
             </p>
-
-            <div className="grid grid-cols-3 gap-2 mt-4">
-              <div className="rounded-xl bg-white/10 px-2 py-2.5 text-center">
-                <p className="text-lg font-bold tabular leading-none">{majorsData.length}</p>
-                <p className="text-[10px] text-white/65 mt-1.5 leading-tight">
-                  {lang === 'ar' ? 'تخصّصًا بالأرقام' : 'majors in numbers'}
-                </p>
-              </div>
-              <div className="rounded-xl bg-white/10 px-2 py-2.5 text-center">
-                <p className="text-lg font-bold tabular leading-none">
-                  {nationalStats.jobsScraped.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}
-                </p>
-                <p className="text-[10px] text-white/65 mt-1.5 leading-tight">
-                  {lang === 'ar' ? 'إعلان وظيفي محلّل' : 'job ads analysed'}
-                </p>
-              </div>
-              <div className="rounded-xl bg-white/10 px-2 py-2.5 text-center">
-                <p className="text-lg font-bold tabular leading-none text-gov-gold">
-                  +{jobMarketTrends.topHiring[0].change}%
-                </p>
-                <p className="text-[10px] text-white/65 mt-1.5 leading-tight truncate">
-                  {jobMarketTrends.topHiring[0].name}
-                </p>
-              </div>
-            </div>
-
+            <h2 className="text-[27px] font-bold leading-[1.5] mt-2">
+              {lang === 'ar' ? 'تخصص يناسب طموحك.' : 'A major that fits your ambition.'}
+              <br />
+              <span className="text-gov-gold">
+                {lang === 'ar' ? 'وكلفة تناسب واقعك.' : 'A cost that fits your reality.'}
+              </span>
+            </h2>
+            <p className="text-[13.5px] text-white/85 leading-loose mt-3">
+              {lang === 'ar'
+                ? 'قارن البرامج والرسوم، افهم شروط التقديم، وخذ قرارك على معلومة واضحة.'
+                : 'Compare programs and fees, understand admission requirements, and decide on clear information.'}
+            </p>
             <button
-              onClick={() => navigate('/roi')}
-              className="w-full min-h-[48px] mt-4 rounded-xl bg-gov-gold text-gov-navy text-[15px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+              onClick={() => navigate('/compare')}
+              className="w-full min-h-[52px] mt-5 rounded-xl bg-white text-gov-navy text-[15px] font-bold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
             >
-              <Calculator size={18} strokeWidth={2.4} />
-              {t('btn.openCalculator')}
+              <Calculator size={19} strokeWidth={2.2} />
+              {lang === 'ar' ? 'ابدأ مقارنة خياراتك' : 'Start comparing your options'}
+              <ChevronEnd size={17} />
             </button>
-            <button
-              onClick={() => navigate('/personality')}
-              className="w-full mt-1.5 py-2 text-[13px] font-semibold text-white/80 hover:text-white hover:underline"
-            >
-              {t('pages.home.orPersonality')}
-            </button>
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-white/70 mt-3.5">
+              <CheckCircle2 size={13} className="text-gov-gold shrink-0" />
+              {lang === 'ar'
+                ? 'المصدر والفترة ظاهران • افتراضاتك قابلة للتعديل'
+                : 'Source & period shown • Your assumptions are adjustable'}
+            </p>
           </div>
         </div>
       </div>
