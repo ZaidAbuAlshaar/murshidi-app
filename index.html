@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/murshidi-app/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/murshidi-app/favicon.png" />
+    <link rel="apple-touch-icon" href="/murshidi-app/icon-192.png" />
+    <link rel="manifest" href="/murshidi-app/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#013070" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="مُرشِدي" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="description" content="مُرشِدي | منصّة وطنيّة لدعم قرار اختيار التخصّص الجامعي — تعتمد على البيانات المنشورة من وزارة التعليم العالي ودائرة الإحصاءات العامّة" />
+    <meta name="keywords" content="مرشدي, التخصص الجامعي, التوجيهي, الأردن, بيانات وزارة التعليم العالي, Murshidi" />
+
+    <!-- Self-hosted: the Arabic interface must render in its own typeface with no
+         network, which is the offline case this app advertises. Arabic + Latin
+         subsets only; both families are SIL OFL 1.1. -->
+    <link rel="preload" as="font" type="font/woff2" href="./fonts/plex-arabic-400-arabic.woff2" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="./fonts/plex-arabic-700-arabic.woff2" crossorigin>
+    <link rel="stylesheet" href="./fonts/fonts.css">
+
+    <title>مُرشِدي — منصّة دعم قرار اختيار التخصّص</title>
+    <script type="module" crossorigin src="/murshidi-app/assets/index-DWHWTFK7.js"></script>
+    <link rel="stylesheet" crossorigin href="/murshidi-app/assets/index-DRHhzJlk.css">
+  </head>
+  <body>
+    <!-- Plain white field so the very first paint already matches the brand
+         splash; React replaces it the moment it mounts. No logo, no text. -->
+    <div id="root"><div style="position:fixed;inset:0;background:#FFFFFF"></div></div>
+  </body>
+</html>
