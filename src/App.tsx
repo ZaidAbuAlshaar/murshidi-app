@@ -12,6 +12,7 @@ import Chat from './pages/Chat';
 import Future from './pages/Future';
 import Scholarships from './pages/Scholarships';
 import Alternatives from './pages/Alternatives';
+import MyField from './pages/MyField';
 import Profile, { ProfileEdit } from './pages/Profile';
 import Auth from './pages/Auth';
 import BottomNav from './components/BottomNav';
@@ -57,6 +58,7 @@ function App() {
           <Route path="/future" element={<Future />} />
           <Route path="/scholarships" element={<Scholarships />} />
           <Route path="/alternatives" element={<Alternatives />} />
+          <Route path="/field" element={<MyField />} />
           <Route path="/profile" element={<Profile />} />
         </Route>
 

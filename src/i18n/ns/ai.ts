@@ -13,6 +13,15 @@ export const aiAr = {
   'ai.intro':
     'مرحباً بك في الاستشارة الأكاديميّة.\n\nأجيب على أسئلتك عن اختيار التخصّص الجامعي اعتماداً على بيانات هذا التطبيق. إن لم يكن الرقم متوفّراً لديّ سأقول ذلك صراحةً بدل تخمينه.\n\nما سؤالك؟',
 
+  // The student's path — what the advisor's eligibility answers are based on
+  'ai.path.title': 'مسارك الدراسي',
+  'ai.path.unset': 'غير محدّد',
+  'ai.path.grounded':
+    'تعتمد إجابات الإتاحة على جدول الكليّات المسموح بها لمسارك الصادر عن مجلس التعليم العالي (قرار 8 أيلول 2024، يسري من 2026/2027).',
+  'ai.path.unsetNote':
+    'لم تحدّد مسارك بعد (أكاديمي / مهني BTEC / الخطة القديمة)، لذلك لن يقول لك المرشد إن كان تخصّص ما متاحاً لك أو غير متاح — سيجيب عن المعدّل والكلفة فقط.',
+  'ai.path.cta': 'حدّد مسارك',
+
   // Suggested questions
   'ai.suggestions.title': 'أمثلة على الأسئلة',
   'ai.suggest.1': 'معدّلي 78 وأرغب بدراسة الطبّ، ما الخيارات المتاحة؟',
@@ -20,7 +29,7 @@ export const aiAr = {
   'ai.suggest.3': 'ما الفرق بين علوم الحاسوب وعلم البيانات؟',
   'ai.suggest.4': 'كم تبلغ الرسوم الحكوميّة لدراسة الصيدلة؟',
   'ai.suggest.5': 'معدّلي 82، ما التخصّصات التي تناسبني؟',
-  'ai.suggest.6': 'أفكّر بدراسة الإعلام، ما الذي يجب أن أعرفه؟',
+  'ai.suggest.6': 'هل يفتح لي مساري الدراسي تخصّص علوم الحاسوب؟',
 
   // Composer
   'ai.input.placeholder': 'اكتب سؤالك هنا…',
@@ -78,6 +87,15 @@ export const aiEn = {
   'ai.intro':
     'Welcome to the academic advisor.\n\nI answer questions about choosing a university major using this app’s data. If a figure is not available to me, I will say so rather than guess it.\n\nWhat would you like to ask?',
 
+  // The student's path — what the advisor's eligibility answers are based on
+  'ai.path.title': 'Your study path',
+  'ai.path.unset': 'Not set',
+  'ai.path.grounded':
+    'Answers about what is open to you follow the Higher Education Council’s table of permitted colleges for your path (decision of 8 September 2024, effective 2026/2027).',
+  'ai.path.unsetNote':
+    'You have not set your path yet (academic / vocational BTEC / previous plan), so the advisor will not tell you whether a major is open to you — it will answer on averages and cost only.',
+  'ai.path.cta': 'Set your path',
+
   // Suggested questions
   'ai.suggestions.title': 'Example questions',
   'ai.suggest.1': 'My average is 78 and I want to study Medicine — what are my options?',
@@ -85,7 +103,7 @@ export const aiEn = {
   'ai.suggest.3': 'What is the difference between Computer Science and Data Science?',
   'ai.suggest.4': 'How much is public-university tuition for Pharmacy?',
   'ai.suggest.5': 'My average is 82 — which majors suit me?',
-  'ai.suggest.6': 'I am thinking about Media & Journalism. What should I know?',
+  'ai.suggest.6': 'Does my study path open Computer Science to me?',
 
   // Composer
   'ai.input.placeholder': 'Type your question…',

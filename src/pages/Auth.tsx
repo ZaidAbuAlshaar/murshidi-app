@@ -1,13 +1,16 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Info, LogIn, ShieldCheck, UserPlus, UserRound } from 'lucide-react';
+import { Eye, EyeOff, Info, LogIn, ShieldCheck, TriangleAlert, UserPlus, UserRound } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import type { AuthRedirectState } from '../components/RequireAuth';
+import { StudyPathPicker } from '../components/PathPicker';
 import { useLang } from '../i18n/LangContext';
-import { branchLabelKeys } from '../i18n/ns/auth';
+import type { TranslationKey } from '../i18n/translations';
 import { useAuth } from '../context/AuthContext';
-import { BRANCH_IDS, governorates, isBranchId, validateGrade } from '../lib/account';
-import type { AuthError, BranchId } from '../lib/account';
+import { governorates, passwordHashMode, validateGrade } from '../lib/account';
+import type { AuthError } from '../lib/account';
+import { isPathComplete } from '../lib/tawjihi';
+import type { StudyPath } from '../lib/tawjihi';
 
 const ERROR_KEYS = {
   'name-taken': 'auth.error.nameTaken',
@@ -15,7 +18,8 @@ const ERROR_KEYS = {
   'wrong-password': 'auth.error.wrongPassword',
   invalid: 'auth.error.invalid',
   storage: 'auth.error.storage',
-} as const satisfies Record<AuthError, string>;
+  'unverifiable-here': 'auth.error.unverifiableHere',
+} as const satisfies Record<AuthError, TranslationKey>;
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -28,15 +32,30 @@ export default function Auth() {
   const gateReason = redirect?.reason;
 
   const cities = useMemo(() => governorates(lang), [lang]);
+
+  // What this browsing context can actually do to a password. On a plain-http
+  // origin `crypto.subtle` does not exist, so the copy below changes with it
+  // rather than claiming SHA-256 regardless of what the code did.
+  const hashMode = useMemo(() => passwordHashMode(), []);
+  const degraded = hashMode === 'checksum';
+
   const [tab, setTab] = useState<'in' | 'up'>('in');
   const [name, setName] = useState('');
   const [grade, setGrade] = useState('');
   const [city, setCity] = useState<string>('');
-  const [branch, setBranch] = useState<BranchId | ''>('');
+  const [path, setPath] = useState<StudyPath | null>(null);
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const privacyKeys: TranslationKey[] = [
+    'auth.privacy.noId',
+    'auth.privacy.local',
+    degraded ? 'auth.privacy.hashWeak' : 'auth.privacy.hash',
+    'auth.privacy.ai',
+    'auth.privacy.wipe',
+  ];
 
   const go = (to: string) => navigate(to, { replace: true });
 
@@ -70,8 +89,12 @@ export default function Auth() {
         setError(t('auth.error.grade'));
         return;
       }
-      if (!isBranchId(branch)) {
-        setError(t('auth.error.branch'));
+      if (!path) {
+        setError(t('auth.error.track'));
+        return;
+      }
+      if (!isPathComplete(path)) {
+        setError(t('auth.error.path'));
         return;
       }
       setBusy(true);
@@ -80,7 +103,7 @@ export default function Auth() {
         password,
         grade: parsed.grade,
         city: city || cities[0],
-        branch,
+        path,
       });
       setBusy(false);
       if (result.ok) {
@@ -125,6 +148,22 @@ export default function Auth() {
 
         <p className="text-[12.5px] text-gov-muted leading-relaxed text-start">{t('auth.doors.hint')}</p>
 
+        {/* The password promise, matched to what this origin can actually do. */}
+        {degraded && (
+          <div
+            role="status"
+            className="bg-white border border-gov-gold/50 rounded-gov-lg p-3 flex items-start gap-2"
+          >
+            <TriangleAlert size={15} className="text-gov-gold shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-bold text-gov-ink text-start">{t('auth.insecure.title')}</p>
+              <p className="text-[11.5px] text-gov-body leading-relaxed mt-1 text-start">
+                {t('auth.insecure.body')}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Door 1 + 2 — sign in / create account */}
         <div className="gov-card p-1.5 grid grid-cols-2 gap-1.5">
           {(['in', 'up'] as const).map((k) => (
@@ -160,21 +199,7 @@ export default function Auth() {
 
           {tab === 'up' && (
             <>
-              <div>
-                <label className="gov-label" htmlFor="auth-branch">{t('auth.field.branch')}</label>
-                <select
-                  id="auth-branch"
-                  className="gov-input"
-                  value={branch}
-                  onChange={(e) => setBranch(isBranchId(e.target.value) ? e.target.value : '')}
-                >
-                  <option value="">{t('auth.field.branchPh')}</option>
-                  {BRANCH_IDS.map((b) => (
-                    <option key={b} value={b}>{t(branchLabelKeys[b])}</option>
-                  ))}
-                </select>
-                <p className="gov-hint">{t('auth.field.branchHint')}</p>
-              </div>
+              <StudyPathPicker value={path} onChange={setPath} idPrefix="auth" />
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -261,13 +286,7 @@ export default function Auth() {
             {t('auth.privacy.title')}
           </p>
           <ul className="mt-2 space-y-1.5">
-            {([
-              'auth.privacy.noId',
-              'auth.privacy.local',
-              'auth.privacy.hash',
-              'auth.privacy.ai',
-              'auth.privacy.wipe',
-            ] as const).map((key) => (
+            {privacyKeys.map((key) => (
               <li key={key} className="flex items-start gap-2">
                 <span className="w-1 h-1 rounded-full bg-gov-muted shrink-0 mt-2" />
                 <span className="text-[11.5px] text-gov-muted leading-relaxed">{t(key)}</span>

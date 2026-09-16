@@ -51,8 +51,17 @@ interface ActivityStore {
 const STORE_PREFIX = 'murshidi.activity.';
 /** Written by the interests test for a signed-in user (see BUILD_SPEC §6.5). */
 const INTERESTS_REPORT_PREFIX = 'murshidi.riasec.';
+/** Written by src/pages/Chat.tsx — the student's whole conversation with the advisor. */
+const CHAT_PREFIX = 'murshidi.chat.';
 const GUEST_SCOPE = 'guest';
 const MAX_EVENTS = 200;
+
+/**
+ * Every localStorage key this device writes per identity. `clearIdentity` walks
+ * this list, so a screen that adds a new per-identity key adds it here too and
+ * delete-account keeps its promise without anyone having to remember.
+ */
+const IDENTITY_KEY_PREFIXES = [STORE_PREFIX, INTERESTS_REPORT_PREFIX, CHAT_PREFIX] as const;
 
 /** Routes that are navigation, not a tool the visitor chose to use. */
 const NON_TOOL_ROUTES = new Set(['/', '/home', '/auth', '/profile', '/profile/edit']);
@@ -189,13 +198,22 @@ export function getActivitySummary(scope: string = activityScope()): ActivitySum
   };
 }
 
-/** Wipes everything this device holds for one identity. Used by delete-account. */
-export function clearActivity(scope: string): void {
-  try {
-    localStorage.removeItem(storeKey(scope));
-    localStorage.removeItem(`${INTERESTS_REPORT_PREFIX}${scope}`);
-  } catch {
-    /* nothing further we can do if storage is unavailable */
+/**
+ * Wipes everything this device holds for one identity: the activity store, the
+ * interests-test report, and the AI conversation.
+ *
+ * The conversation matters most here. Deleting the account used to leave the
+ * student's whole chat sitting in `murshidi.chat.<scope>` while the confirmation
+ * copy said every trace was erased — the copy was the honest one, so the code
+ * moved to meet it.
+ */
+export function clearIdentity(scope: string): void {
+  for (const prefix of IDENTITY_KEY_PREFIXES) {
+    try {
+      localStorage.removeItem(`${prefix}${scope}`);
+    } catch {
+      /* one unavailable key must not stop the rest being removed */
+    }
   }
 }
 

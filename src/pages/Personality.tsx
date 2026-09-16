@@ -17,10 +17,13 @@ import PageHeader from '../components/PageHeader';
 import SourceNote from '../components/SourceNote';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../i18n/LangContext';
-import { branchLabelKeys } from '../i18n/ns/auth';
+import type { TranslationKey } from '../i18n/translations';
 import { askAi } from '../lib/ai';
 import type { AiProfileContext } from '../lib/ai';
+import { readStudyPath, safeCity, safeGrade } from '../lib/ai/student';
 import { recordActivity } from '../lib/activity';
+import { isoDate } from '../lib/numerals';
+import { isPathComplete, partTwoLabel, pathLabel } from '../lib/tawjihi';
 import {
   ADAPTIVE_QUESTION_COUNT,
   CORE_QUESTION_COUNT,
@@ -39,7 +42,7 @@ import {
   reachableMajors,
   reportNumber,
   resolveShortlist,
-  shortlist,
+  shortlistFor,
   shortlistSource,
   sumScores,
   tidyText,
@@ -47,8 +50,10 @@ import {
 import type {
   AdaptiveAnswer,
   AdaptiveQuestion,
+  PathVerdict,
   PromptProfile,
   Reach,
+  ShortlistEntry,
   StoredReport,
   Trait,
   TraitScores,
@@ -71,6 +76,48 @@ const REACH_LABEL_KEYS = {
   beyond: 'personality.reach.beyond',
   unknown: 'personality.reach.unknown',
 } as const;
+
+/**
+ * The path verdict badge. `unchecked` is deliberately neutral and never green:
+ * with no path set the app has checked nothing and must not look like it has.
+ */
+const VERDICT_BADGE: Record<PathVerdict, string> = {
+  open: 'gov-badge gov-badge-success',
+  technical: 'gov-badge gov-badge-info',
+  closed: 'gov-badge gov-badge-danger',
+  unchecked: 'gov-badge gov-badge-neutral',
+};
+
+const VERDICT_LABEL_KEYS = {
+  open: 'personality.path.open',
+  technical: 'personality.path.technical',
+  closed: 'personality.path.closed',
+  unchecked: 'personality.path.unchecked',
+} as const;
+
+/** The Ministry's own sentence for this verdict — quoted, never paraphrased. */
+function verdictReason(
+  entry: ShortlistEntry,
+  lang: 'ar' | 'en',
+  t: (key: TranslationKey) => string,
+): string | null {
+  const { eligibility } = entry;
+  if (eligibility.status === 'not-eligible') {
+    return lang === 'ar' ? eligibility.reasonAr : eligibility.reasonEn;
+  }
+  if (eligibility.status === 'eligible-technical') {
+    return lang === 'ar' ? eligibility.noteAr : eligibility.noteEn;
+  }
+  if (eligibility.status === 'eligible' && !eligibility.explicit) {
+    // The Ministry named a broader college, so the app says «ضمن …» / "within …"
+    // and never implies the document named this major by itself. The preposition
+    // comes from the dictionary like every other word on screen; the college name
+    // inside the quotes stays in the document's own Arabic.
+    const within = eligibility.coveredBy ?? eligibility.officialCollege;
+    return `${t('tools.elig.within')} «${within}»`;
+  }
+  return null;
+}
 
 /** The amber used by `.gov-badge-warn`, applied inline so the note can wrap. */
 const AMBER = { bg: '#FFFBEB', border: '#FDE68A', ink: '#B45309' };
@@ -105,8 +152,10 @@ function InterestsTest() {
   const navigate = useNavigate();
 
   const userId = user?.id ?? null;
-  const grade = user?.grade ?? null;
-  const branchLabel = user?.branch ? t(branchLabelKeys[user.branch]) : null;
+  const grade = safeGrade(user?.grade);
+  // Read through the same validator the AI layer uses, so the test and the
+  // advisor can never disagree about which row of the Ministry's table applies.
+  const path = useMemo(() => readStudyPath(user), [user]);
 
   const [stored] = useState<StoredReport | null>(() => loadReport(userId));
   const [fromStorage, setFromStorage] = useState(stored !== null);
@@ -150,13 +199,14 @@ function InterestsTest() {
   }, []);
 
   const promptProfile = useMemo<PromptProfile>(
-    () => ({ lang, grade, branchLabel }),
-    [lang, grade, branchLabel],
+    () => ({ lang, grade, path }),
+    [lang, grade, path],
   );
 
+  // No free text from the profile reaches a prompt — see src/lib/ai/student.ts.
   const aiProfile = useMemo<AiProfileContext>(
-    () => ({ name: user?.name, grade, branch: branchLabel, city: user?.city ?? null, lang }),
-    [user?.name, user?.city, grade, branchLabel, lang],
+    () => ({ grade, city: safeCity(user?.city), path, lang }),
+    [user?.city, grade, path, lang],
   );
 
   const runNarrative = useCallback(
@@ -167,13 +217,17 @@ function InterestsTest() {
       setNarrativeState('writing');
 
       try {
-        const matches = resolveShortlist(base.shortlist);
+        // The report's own path, not the live profile: a stored report is read
+        // back exactly as it was issued.
+        const matches = resolveShortlist(base.shortlist, base.path);
+        const blocked = resolveShortlist(base.blocked, base.path);
         const request = buildNarrativeRequest(
           base.coreScores,
           base.adaptiveScores,
           base.adaptiveAnswers,
           matches,
-          promptProfile,
+          blocked,
+          { ...promptProfile, path: base.path },
         );
         const result = await askAi(request.user, {
           system: request.system,
@@ -219,7 +273,10 @@ function InterestsTest() {
   const finalize = useCallback(
     (core: TraitScores, adaptive: TraitScores, answers: AdaptiveAnswer[], used: boolean) => {
       const totals = sumScores(core, adaptive);
-      const matches = shortlist(totals);
+      // The shortlist is what the student can actually reach. A strong match the
+      // official table closes is kept — separately, and with its reason — rather
+      // than recommended or silently dropped.
+      const result = shortlistFor(totals, path);
       const next: StoredReport = {
         version: REPORT_VERSION,
         at: new Date().toISOString(),
@@ -229,9 +286,10 @@ function InterestsTest() {
         adaptiveAnswers: answers,
         adaptiveUsed: used,
         top: rankTraits(totals).slice(0, 3),
-        shortlist: matches.map((match) => ({ id: match.major.id, fit: match.fit })),
+        shortlist: result.recommended.map((entry) => ({ id: entry.major.id, fit: entry.fit })),
+        blocked: result.blocked.map((entry) => ({ id: entry.major.id, fit: entry.fit })),
         grade,
-        branch: user?.branch ?? null,
+        path,
         narrative: '',
         narrativeModel: '',
       };
@@ -242,7 +300,7 @@ function InterestsTest() {
       setPhase('report');
       void runNarrative(next);
     },
-    [grade, lang, runNarrative, user?.branch, userId],
+    [grade, lang, path, runNarrative, userId],
   );
 
   const requestAdaptive = useCallback(
@@ -554,16 +612,29 @@ function ReportView({
     [report.coreScores, report.adaptiveScores],
   );
   const ranked = useMemo(() => rankTraits(totals), [totals]);
-  const matches = useMemo(() => resolveShortlist(report.shortlist), [report.shortlist]);
-  const reachable = useMemo(() => reachableMajors(report.grade, totals), [report.grade, totals]);
+  const matches = useMemo(
+    () => resolveShortlist(report.shortlist, report.path),
+    [report.shortlist, report.path],
+  );
+  const blocked = useMemo(
+    () => resolveShortlist(report.blocked, report.path),
+    [report.blocked, report.path],
+  );
+  const reachable = useMemo(
+    () => reachableMajors(report.grade, totals, report.path),
+    [report.grade, totals, report.path],
+  );
+  const pathChecked = isPathComplete(report.path);
+  const track = report.path?.track;
+  const partTwo =
+    pathChecked && (track === 'academic' || track === 'vocational') ? partTwoLabel(track, lang) : null;
   const radarData = useMemo(
     () => TRAITS.map((trait) => ({ trait: t(TRAIT_KEYS[trait].short), value: totals[trait] })),
     [totals, t],
   );
-  const issued = useMemo(
-    () => new Date(report.at).toLocaleDateString(lang === 'ar' ? 'ar-JO' : 'en-GB'),
-    [report.at, lang],
-  );
+  // One numeral system across the app: Latin digits inside Arabic text, the way
+  // the Ministry's own publications set their figures (see src/lib/numerals.ts).
+  const issued = useMemo(() => isoDate(report.at), [report.at]);
 
   const top = report.top.length > 0 ? report.top : ranked.slice(0, 3);
   const anyBeyond = matches.some(
@@ -716,8 +787,8 @@ function ReportView({
           <div className="border-b border-gov-line bg-gov-bg-soft px-4 py-2.5">
             <p className="gov-section-title text-start">{t('personality.report.shortlist')}</p>
             <p className="mt-0.5 text-[11px] text-gov-muted text-start">
-              {t('personality.report.branch')}:{' '}
-              {report.branch ? t(branchLabelKeys[report.branch]) : t('personality.report.none')}
+              {t('personality.report.path')}:{' '}
+              {pathChecked ? pathLabel(report.path, lang) : t('personality.report.none')}
               {report.grade !== null && (
                 <>
                   {' · '}
@@ -725,11 +796,24 @@ function ReportView({
                 </>
               )}
             </p>
+            <p className="mt-1 text-[10.5px] leading-relaxed text-gov-muted text-start">
+              {pathChecked ? t('personality.path.filtered') : t('personality.path.unfiltered')}
+            </p>
+            {/* The two 30/70s are not the same thing: the academic 70% is the
+                grade-12 national exam, the vocational 70% is BTEC coursework.
+                The label always comes from partTwoLabel so they cannot merge. */}
+            {report.grade !== null && partTwo && (
+              <p className="mt-1 text-[10.5px] leading-relaxed text-gov-muted text-start">
+                {t('personality.path.average')} {partTwo}
+              </p>
+            )}
           </div>
 
           <div className="divide-y divide-gov-line">
-            {matches.map(({ major, fit }, index) => {
+            {matches.map((entry, index) => {
+              const { major, fit, verdict } = entry;
               const { reach, delta } = reachFor(report.grade, major.averageAcceptance);
+              const reason = verdictReason(entry, lang, t);
               return (
                 <div key={major.id} className="p-3">
                   <div className="flex items-start justify-between gap-3">
@@ -751,6 +835,9 @@ function ReportView({
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className={REACH_BADGE[reach]}>{t(REACH_LABEL_KEYS[reach])}</span>
+                    {pathChecked && (
+                      <span className={VERDICT_BADGE[verdict]}>{t(VERDICT_LABEL_KEYS[verdict])}</span>
+                    )}
                     {reach === 'beyond' && delta !== null && (
                       <span className="text-[11px] text-gov-muted">
                         {t('personality.reach.gap')}: <span className="tabular">{Math.abs(delta)}</span>{' '}
@@ -759,18 +846,42 @@ function ReportView({
                     )}
                   </div>
 
+                  {pathChecked && reason && (
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-gov-muted text-start">{reason}</p>
+                  )}
+
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gov-bg">
                     <div className="h-full rounded-full bg-gov-navy" style={{ width: `${fit}%` }} />
                   </div>
                 </div>
               );
             })}
+            {matches.length === 0 && (
+              <p className="px-4 py-3 text-[11.5px] leading-relaxed text-gov-body text-start">
+                {t('personality.path.noneOpen')}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2 border-t border-gov-line px-4 py-3">
             <p className="text-[10.5px] leading-relaxed text-gov-muted text-start">
               {t('personality.report.fitNote')}
             </p>
+            {pathChecked && (
+              <p className="text-[10.5px] leading-relaxed text-gov-muted text-start">
+                {t('personality.path.source')}
+              </p>
+            )}
+            {!pathChecked && (
+              <div className="pt-1">
+                <p className="text-[11px] leading-relaxed text-gov-body text-start">
+                  {t('personality.path.missing')}
+                </p>
+                <button type="button" onClick={onAddGrade} className="btn-ghost mt-2">
+                  {signedIn ? t('personality.path.set') : t('personality.path.signUp')}
+                </button>
+              </div>
+            )}
             <SourceNote source={shortlistSource(matches)} note={t('personality.source.note')} />
             {report.grade === null && (
               <div className="pt-1">
@@ -785,6 +896,41 @@ function ReportView({
           </div>
         </div>
 
+        {/* Strong matches the official table closes — shown, never recommended */}
+        {pathChecked && blocked.length > 0 && (
+          <div className="gov-card overflow-hidden">
+            <div className="border-b border-gov-line bg-gov-bg-soft px-4 py-2.5">
+              <p className="gov-section-title text-start">{t('personality.blocked.title')}</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-gov-muted text-start">
+                {t('personality.blocked.sub')}
+              </p>
+            </div>
+            <div className="divide-y divide-gov-line">
+              {blocked.map((entry) => (
+                <div key={entry.major.id} className="px-4 py-2.5 text-start">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-[13px] font-semibold text-gov-ink">
+                      {lang === 'ar' ? entry.major.nameAr : entry.major.nameEn}
+                    </p>
+                    <span className="shrink-0 text-[11px] text-gov-muted">
+                      {t('personality.report.fit')}:{' '}
+                      <span className="tabular font-semibold text-gov-navy">{entry.fit}</span>
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] leading-relaxed text-gov-body">
+                    {verdictReason(entry, lang, t)}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-gov-line px-4 py-2.5">
+              <p className="text-[10.5px] leading-relaxed text-gov-muted text-start">
+                {t('personality.blocked.note')}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* What the average actually reaches — the specific, honest answer */}
         {report.grade !== null && anyBeyond && (
           <div className="gov-card overflow-hidden">
@@ -793,6 +939,11 @@ function ReportView({
               <p className="mt-0.5 text-[11px] text-gov-muted text-start">
                 {t('personality.reachable.sub')}
               </p>
+              {pathChecked && (
+                <p className="mt-0.5 text-[10.5px] leading-relaxed text-gov-muted text-start">
+                  {t('personality.reachable.pathNote')}
+                </p>
+              )}
             </div>
             {reachable.length > 0 ? (
               <>

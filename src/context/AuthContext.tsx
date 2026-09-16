@@ -13,9 +13,12 @@ import {
   updateAccount,
 } from '../lib/account';
 import type { AuthResult, SignUpInput, StudentProfile } from '../lib/account';
-import { clearActivity } from '../lib/activity';
+import { clearIdentity } from '../lib/activity';
 
-export type { AuthResult, BranchId, SignUpInput, StudentProfile } from '../lib/account';
+export type {
+  AcademicFieldId, AuthResult, LegacyBranchId, SignUpInput, StudentProfile,
+  StudyPath, TrackId, VocationalProgramId,
+} from '../lib/account';
 
 export interface AuthValue {
   /** null = nobody is signed in (the visitor may still be a guest). */
@@ -95,9 +98,13 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactElemen
     [user],
   );
 
+  // Order matters: the per-identity keys are cleared while the id is still
+  // known, then the record itself. `clearIdentity` covers the activity store,
+  // the interests report AND the AI conversation, which is what the
+  // delete-account copy promises.
   const deleteAccount = useCallback(() => {
     if (!user) return;
-    clearActivity(user.id);
+    clearIdentity(user.id);
     deleteStoredAccount(user.id);
     setSession(SIGNED_OUT);
   }, [user]);

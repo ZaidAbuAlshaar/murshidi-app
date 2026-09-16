@@ -65,15 +65,14 @@ export const core = {
     'service.future.title': 'مستقبل الوظائف',
     'service.future.desc': 'اتّجاهات منشورة وأمثلة توضيحيّة',
     'service.scholarships.title': 'المنح الدراسيّة',
-    'service.scholarships.desc': 'منح حكوميّة وخاصّة',
+    'service.scholarships.desc': 'أنواع الجهات المانحة وما تسأل عنه',
     'service.alternatives.title': 'المسارات البديلة',
-    'service.alternatives.desc': 'دبلومات و BTEC',
+    'service.alternatives.desc': 'دبلومات وشهادات مهنيّة',
 
     // Stats labels
     'stat.studentsHelped': 'طلبة استفادوا',
     'stat.jobsAnalyzed': 'إعلانات في قاعدة العرض',
     'stat.unemployment': 'البطالة بين الأردنيّين',
-    'stat.nationalCost': 'الكلفة الوطنيّة السنويّة',
 
     // Calculator
     'calc.title': 'حاسبة عائد التعليم',
@@ -95,7 +94,6 @@ export const core = {
     'calc.gpa.low': 'منخفض',
     'calc.pickMajors': 'اختر حتى ثلاثة تخصّصات للمقارنة.',
     'calc.selected': 'محدّد',
-    'calc.eligible': 'قابل للقبول',
     'calc.minRequired': 'معدّل قبول استرشادي',
     'calc.duration': 'مدّة الدراسة',
     'calc.years': 'سنوات',
@@ -128,7 +126,7 @@ export const core = {
     'profile.section.records': 'سجلّي',
     'profile.section.support': 'الدعم',
     'profile.item.profile': 'الملف الشخصي',
-    'profile.item.profileSub': 'الاسم، المعدّل، المحافظة، الفرع',
+    'profile.item.profileSub': 'الاسم، المعدّل، المحافظة، المسار الدراسي',
     'profile.item.notifications': 'إعدادات الإشعارات',
     'profile.item.notificationsSub': 'منح، نصائح، تنبيهات',
     'profile.item.language': 'لغة الواجهة',
@@ -236,15 +234,14 @@ export const core = {
     'service.future.title': 'Future of Jobs',
     'service.future.desc': 'Published trends and illustrative examples',
     'service.scholarships.title': 'Scholarships',
-    'service.scholarships.desc': 'Government & private grants',
+    'service.scholarships.desc': 'Funder types, and what to ask',
     'service.alternatives.title': 'Alternative Paths',
-    'service.alternatives.desc': 'Diplomas & BTEC',
+    'service.alternatives.desc': 'Diplomas & professional certificates',
 
     // Stats labels
     'stat.studentsHelped': 'Students Helped',
     'stat.jobsAnalyzed': 'Postings in the demo dataset',
     'stat.unemployment': 'Unemployment among Jordanians',
-    'stat.nationalCost': 'Annual National Cost',
 
     // Calculator
     'calc.title': 'Education ROI Calculator',
@@ -266,7 +263,6 @@ export const core = {
     'calc.gpa.low': 'Low',
     'calc.pickMajors': 'Select up to three majors to compare.',
     'calc.selected': 'selected',
-    'calc.eligible': 'Eligible',
     'calc.minRequired': 'Indicative acceptance avg.',
     'calc.duration': 'Study Duration',
     'calc.years': 'years',
@@ -283,7 +279,9 @@ export const core = {
     'calc.netROI10y': 'Net ROI (10 years)',
     'calc.annualReturnRate': 'Annual return rate',
     'calc.paybackPeriod': 'Payback period',
-    'calc.year': 'year',
+    // Only used for the payback row, which always prints a decimal («2.9 years»).
+    // Arabic keeps the singular «سنة» because Arabic decimal counts take it.
+    'calc.year': 'years',
     'calc.report': 'Report ID',
     'calc.reportDate': 'Issued',
     'calc.methodology': 'Calculation Methodology',
@@ -299,7 +297,7 @@ export const core = {
     'profile.section.records': 'My Records',
     'profile.section.support': 'Support',
     'profile.item.profile': 'My Profile',
-    'profile.item.profileSub': 'Name, average, governorate, branch',
+    'profile.item.profileSub': 'Name, average, governorate, study path',
     'profile.item.notifications': 'Notification Settings',
     'profile.item.notificationsSub': 'Grants, tips, alerts',
     'profile.item.language': 'Interface Language',

@@ -8,6 +8,9 @@ import { authAr, authEn } from './ns/auth';
 import { aiAr, aiEn } from './ns/ai';
 import { personalityAr, personalityEn } from './ns/personality';
 import { dataAr, dataEn } from './ns/data';
+import { supportAr, supportEn } from './ns/support';
+import { toolsAr, toolsEn } from './ns/tools';
+import { fieldAr, fieldEn } from './ns/field';
 
 export type Lang = 'ar' | 'en';
 
@@ -19,6 +22,9 @@ export const translations = {
     ...aiAr,
     ...personalityAr,
     ...dataAr,
+    ...supportAr,
+    ...toolsAr,
+    ...fieldAr,
   },
   en: {
     ...coreEn,
@@ -27,6 +33,9 @@ export const translations = {
     ...aiEn,
     ...personalityEn,
     ...dataEn,
+    ...supportEn,
+    ...toolsEn,
+    ...fieldEn,
   },
 } as const;
 

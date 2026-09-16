@@ -15,13 +15,20 @@
 //
 // The shortlist is always resolved against src/data/majors.ts, so the model
 // cannot introduce a programme that does not exist in the app.
+//
+// Round two adds the second filter that decides an outcome: the student's own
+// row of the Higher Education Council table. A major the Ministry's document
+// does not open to this student's track is never presented as a recommendation,
+// however well it matches their interests — it is shown separately, named as a
+// strong interest match, with the official reason it is closed.
 
-import { isBranchId } from './account';
-import type { BranchId } from './account';
 import { majorsData } from '../data/majors';
 import type { Major } from '../data/majors';
 import type { SourceId } from '../data/sources';
 import { categoryLabel, majorName } from './ai/grounding';
+import { readStudyPath } from './ai/student';
+import { eligibilityFor, isPathComplete, partTwoLabel, pathLabel } from './tawjihi';
+import type { Eligibility, StudyPath } from './tawjihi';
 import type { Lang, TranslationKey } from '../i18n/translations';
 
 export type Trait = 'R' | 'I' | 'A' | 'S' | 'E' | 'C';
@@ -251,8 +258,75 @@ export function matchMajors(scores: TraitScores): MajorMatch[] {
 
 export const SHORTLIST_SIZE = 5;
 
-export function shortlist(scores: TraitScores): MajorMatch[] {
-  return matchMajors(scores).slice(0, SHORTLIST_SIZE);
+/** What the Ministry's table says about a matched major for this student's path. */
+export type PathVerdict = 'open' | 'technical' | 'closed' | 'unchecked';
+
+export interface ShortlistEntry extends MajorMatch {
+  verdict: PathVerdict;
+  /** The tawjihi module's own answer, so the UI can quote its wording verbatim. */
+  eligibility: Eligibility;
+}
+
+export interface ShortlistResult {
+  /**
+   * What the app recommends: high-interest majors this student's path actually
+   * opens. With no usable path every entry is `unchecked` and the app makes no
+   * eligibility claim at all.
+   */
+  recommended: ShortlistEntry[];
+  /**
+   * Majors that ranked inside the top five on interest alone but that the
+   * official table does not open to this path. Shown, never recommended, always
+   * with the reason — a student is owed the fact that their strongest match is
+   * closed to them, and owed the reason it is closed.
+   */
+  blocked: ShortlistEntry[];
+  /** True when eligibility was actually checked (a complete academic/vocational path). */
+  pathChecked: boolean;
+}
+
+function entryFor(match: MajorMatch, path: StudyPath | null): ShortlistEntry {
+  const eligibility = eligibilityFor(match.major.id, path);
+  const verdict: PathVerdict =
+    eligibility.status === 'eligible'
+      ? 'open'
+      : eligibility.status === 'eligible-technical'
+        ? 'technical'
+        : eligibility.status === 'not-eligible'
+          ? 'closed'
+          : 'unchecked';
+  return { ...match, verdict, eligibility };
+}
+
+/**
+ * The five majors the report recommends, and the strong matches the student's
+ * track closes off.
+ *
+ * `path` null, incomplete, or on the previous plan means eligibility is
+ * unpublished for every major — the shortlist then falls back to interest order
+ * alone and the report says so, rather than inventing a verdict.
+ */
+export function shortlistFor(scores: TraitScores, path: StudyPath | null): ShortlistResult {
+  const ranked = matchMajors(scores);
+  const usable = isPathComplete(path) ? path : null;
+
+  if (!usable) {
+    return {
+      recommended: ranked.slice(0, SHORTLIST_SIZE).map((match) => entryFor(match, null)),
+      blocked: [],
+      pathChecked: false,
+    };
+  }
+
+  const entries = ranked.map((match) => entryFor(match, usable));
+  const recommended = entries
+    .filter((entry) => entry.verdict === 'open' || entry.verdict === 'technical')
+    .slice(0, SHORTLIST_SIZE);
+  // "Strong match" is defined by the interest ranking alone: these are the
+  // majors that would have made the top five had the table not closed them.
+  const blocked = entries.slice(0, SHORTLIST_SIZE).filter((entry) => entry.verdict === 'closed');
+
+  return { recommended, blocked, pathChecked: true };
 }
 
 /** One `SourceId` covering a set of majors: their shared one, else the weaker claim. */
@@ -288,11 +362,24 @@ export const REACHABLE_LIMIT = 5;
  * their interests. This is the answer to the question the app exists for — a 78
  * who wants medicine needs a real list, not a slogan — and it is computed here
  * so it is on screen with no network and so the model can only name from it.
+ *
+ * With a usable path the list is narrowed again by the official table: a major
+ * their average reaches but their track does not open is not within reach.
  */
-export function reachableMajors(grade: number | null, scores: TraitScores): MajorMatch[] {
+export function reachableMajors(
+  grade: number | null,
+  scores: TraitScores,
+  path: StudyPath | null = null,
+): MajorMatch[] {
   if (typeof grade !== 'number' || !Number.isFinite(grade)) return [];
+  const usable = isPathComplete(path) ? path : null;
   return matchMajors(scores)
     .filter((match) => reachFor(grade, match.major.averageAcceptance).reach !== 'beyond')
+    .filter((match) => {
+      if (!usable) return true;
+      const status = eligibilityFor(match.major.id, usable).status;
+      return status === 'eligible' || status === 'eligible-technical';
+    })
     .slice(0, REACHABLE_LIMIT);
 }
 
@@ -415,8 +502,12 @@ export function parseAdaptiveQuestions(raw: string): AdaptiveQuestion[] {
 export interface PromptProfile {
   lang: Lang;
   grade: number | null;
-  /** Already translated by the caller — the prompt layer holds no UI strings. */
-  branchLabel: string | null;
+  /**
+   * The student's track and field. Labels are resolved through `pathLabel`, so
+   * the prompt layer still holds no UI strings and no free text the student
+   * typed ever reaches a prompt — see src/lib/ai/student.ts.
+   */
+  path: StudyPath | null;
 }
 
 function traitLabelForPrompt(trait: Trait, lang: Lang): string {
@@ -449,21 +540,38 @@ function tallyLines(core: TraitScores, adaptive: TraitScores, lang: Lang): strin
 }
 
 function profileLines(profile: PromptProfile): string[] {
-  const { lang, grade, branchLabel } = profile;
+  const { lang, grade, path } = profile;
+  const track = path && isPathComplete(path) ? path.track : null;
+
   if (lang === 'ar') {
-    return [
+    const lines = [
       typeof grade === 'number'
         ? `معدّل التوجيهي: ${grade}`
         : 'معدّل التوجيهي: غير مُدخَل — لا تخمّنه ولا تفترض رقماً.',
-      `فرع التوجيهي: ${branchLabel ?? 'غير محدّد'}`,
+      `مسار الطالب: ${path ? pathLabel(path, 'ar') : 'غير محدّد'}`,
     ];
+    if (track === 'academic' || track === 'vocational') {
+      lines.push(
+        `احتساب معدّله: 30% امتحان الصف الحادي عشر + 70% ${partTwoLabel(track, 'ar')}.`,
+        'لا تصف الـ70% في المسار المهني بأنّها امتحان وطنيّ كتابيّ؛ هي تقييمات وحدات عمليّة.',
+      );
+    }
+    return lines;
   }
-  return [
+
+  const lines = [
     typeof grade === 'number'
       ? `Tawjihi average: ${grade}`
       : 'Tawjihi average: not entered — do not guess it and do not assume a figure.',
-    `Tawjihi branch: ${branchLabel ?? 'not set'}`,
+    `Study path: ${path ? pathLabel(path, 'en') : 'not set'}`,
   ];
+  if (track === 'academic' || track === 'vocational') {
+    lines.push(
+      `How their average is built: 30% the grade-11 national exam + 70% ${partTwoLabel(track, 'en')}.`,
+      'Never describe the vocational 70% as a written national exam; it is practical unit assessment.',
+    );
+  }
+  return lines;
 }
 
 export interface AdaptiveRequest {
@@ -576,9 +684,37 @@ function gapPhrase(grade: number | null, acceptance: number, lang: Lang): string
     : `the student's average is ${gap} points above it`;
 }
 
-function shortlistLines(matches: MajorMatch[], profile: PromptProfile): string[] {
+/** The degree the student's own path yields for this major, in the Ministry's words. */
+function verdictPhrase(entry: ShortlistEntry, lang: Lang): string {
+  const { eligibility } = entry;
+  if (eligibility.status === 'eligible') {
+    const within = eligibility.coveredBy ?? eligibility.officialCollege;
+    if (eligibility.explicit) {
+      return lang === 'ar'
+        ? `يفتحه مسار الطالب ضمن كليّة «${eligibility.officialCollege}» (بكالوريوس أكاديمي)`
+        : `the student's path opens it under the college «${eligibility.officialCollege}» (academic bachelor)`;
+    }
+    return lang === 'ar'
+      ? `يفتحه مسار الطالب «ضمن ${within}» — الجدول سمّى كليّة أوسع ولم يسمّ التخصّص بذاته`
+      : `the student's path opens it “within ${within}” — the table names a broader college, not this major itself`;
+  }
+  if (eligibility.status === 'eligible-technical') {
+    return lang === 'ar'
+      ? `متاح لمساره بدرجة البكالوريوس التقني/التطبيقي ضمن «${eligibility.officialCollege}» — سمِّ الدرجة كاملة ولا تختصرها إلى «بكالوريوس»`
+      : `open to their path as a technical/applied bachelor within «${eligibility.officialCollege}» — name the degree in full, never just “bachelor's”`;
+  }
+  if (eligibility.status === 'not-eligible') {
+    return lang === 'ar' ? eligibility.reasonAr : eligibility.reasonEn;
+  }
+  return lang === 'ar'
+    ? 'لم يُتحقّق من إتاحته لمساره (المسار غير محدّد أو غير مشمول بالجدول المنشور) — لا تقل إنّه متاح أو غير متاح'
+    : 'eligibility not checked (no path set, or not covered by the published table) — do not say it is or is not open to them';
+}
+
+function shortlistLines(matches: ShortlistEntry[], profile: PromptProfile): string[] {
   const { lang, grade } = profile;
-  return matches.map(({ major, fit }, index) => {
+  return matches.map((entry, index) => {
+    const { major, fit } = entry;
     const parts =
       lang === 'ar'
         ? [
@@ -589,6 +725,7 @@ function shortlistLines(matches: MajorMatch[], profile: PromptProfile): string[]
             `المدّة ${major.duration} سنوات`,
             `الرسوم الحكوميّة ${major.yearlyTuitionGov} د.أ للسنة`,
             `المجال ${categoryLabel(major.category, lang)}`,
+            verdictPhrase(entry, lang),
           ]
         : [
             `${index + 1}) ${majorName(major, lang)}`,
@@ -598,17 +735,46 @@ function shortlistLines(matches: MajorMatch[], profile: PromptProfile): string[]
             `${major.duration} years`,
             `public tuition ${major.yearlyTuitionGov} JOD/year`,
             `field ${categoryLabel(major.category, lang)}`,
+            verdictPhrase(entry, lang),
           ];
     return parts.join(' | ');
   });
 }
 
 /**
+ * The strong matches the official table closes off. They are handed to the model
+ * as something to explain, explicitly separated from the list it may recommend
+ * from, with the Ministry's own reason attached to each one.
+ */
+function blockedLines(blocked: ShortlistEntry[], profile: PromptProfile): string[] {
+  const { lang, path } = profile;
+  if (blocked.length === 0) return [];
+  const pathName = path ? pathLabel(path, lang) : '';
+  return [
+    '',
+    lang === 'ar'
+      ? `تخصّصات جاءت ضمن أعلى خمس نتائج في الميول لكنّ مسار الطالب (${pathName}) لا يفتحها في الجدول الرسميّ.`
+        + ' اذكرها باعتبارها ميلاً حقيقيّاً لديه، واشرح سبب إغلاقها كما هو وارد، ثمّ وجّهه إلى القائمة'
+        + ' المعتمدة أعلاه. ممنوع منعاً باتّاً أن ترشّح أيّاً منها أو توحي بأنّها ممكنة بمعدّل أعلى:'
+      : `Majors that landed in the top five on interest but that the student's path (${pathName}) does not`
+        + ' open per the official table. Name them as a genuine interest, explain why they are closed'
+        + ' using the reason given, then point back to the approved list above. Never recommend one and'
+        + ' never imply a higher average could open it:',
+    ...blocked.map(
+      (entry, index) =>
+        `${index + 1}) ${majorName(entry.major, lang)} | ${
+          lang === 'ar' ? `مؤشّر الانسجام ${entry.fit}` : `match index ${entry.fit}`
+        } | ${verdictPhrase(entry, lang)}`,
+    ),
+  ];
+}
+
+/**
  * The written report.
  *
- * Two properties are doing the honesty work here. First, the five majors are
- * fixed by the app and handed over by name, so the model orders nothing and can
- * name nothing that is not in src/data/majors.ts. Second, every figure it may
+ * Two properties are doing the honesty work here. First, the shortlist is fixed
+ * by the app and handed over by name, so the model orders nothing and can name
+ * nothing that is not in src/data/majors.ts and open to the student's path. Second, every figure it may
  * state — the averages and the gap to the student's own average — is already
  * computed in the prompt, so "be realistic" is a writing instruction rather than
  * an arithmetic one.
@@ -617,7 +783,8 @@ export function buildNarrativeRequest(
   core: TraitScores,
   adaptive: TraitScores,
   adaptiveAnswers: AdaptiveAnswer[],
-  matches: MajorMatch[],
+  matches: ShortlistEntry[],
+  blocked: ShortlistEntry[],
   profile: PromptProfile,
 ): NarrativeRequest {
   const { lang } = profile;
@@ -637,7 +804,8 @@ export function buildNarrativeRequest(
           '   مؤشّر ميول وليس قياس قدرات ولا تقييماً نفسيّاً معتمداً.',
           '2) ثلاث نقاط قوّة — كلّ واحدة جملة واحدة مبنيّة على نقاطه لا على المجاملة.',
           '3) تحفّظان — ما الذي قد يتعبه في هذا المسار، بصراحة وباحترام.',
-          '4) التخصّصات الخمسة — بالترتيب نفسه وبالأسماء نفسها حرفيّاً كما وردت في القائمة المرفقة،',
+          '4) التخصّصات المعتمدة — جميعها، بالترتيب نفسه وبالأسماء نفسها حرفيّاً كما وردت في القائمة',
+          '   المرفقة (عددها قد يقلّ عن خمسة لأنّ القائمة مصفّاة على ما يفتحه مسار الطالب)،',
           '   ولكلّ تخصّص جملة عن سبب انسجامه مع ميوله تحديداً، وجملة واقعيّة عن معدّله مقابل معدّل',
           '   القبول الاسترشادي منقولة من القائمة.',
           '5) الخطوة التالية — سطر واحد يشير إلى أداة داخل التطبيق: حاسبة عائد التعليم، أو مقارنة',
@@ -653,6 +821,14 @@ export function buildNarrativeRequest(
           '  ممنوع «اجتهد وستصل» و«لا شيء مستحيل» و«كلّ الأبواب مفتوحة». الصدق المحدّد أنفع من',
           '  التشجيع العامّ — ومن دون إهانة ولا تثبيط: اذكر البديل الواقعي بدل إغلاق الباب.',
           '- إن لم يكن للطالب معدّل مُدخَل فلا تخمّنه، واطلب منه إدخاله في ملفّه ليصبح التحليل أدقّ.',
+          '- ممنوع أن ترشّح تخصّصاً لا يفتحه مسار الطالب في جدول مجلس التعليم العالي المرفق. إن كان',
+          '  التخصّص الذي يميل إليه مغلقاً بسبب مساره فاذكر قيد المسار أوّلاً وصراحةً — قبل المعدّل',
+          '  وقبل الكلفة — لأنّ المعدّل لا يفتح كليّة لا يسمح بها جدول المسار أصلاً، ثمّ اعرض البديل',
+          '  الحقيقي من القائمة المعتمدة.',
+          '- اقتبس أسماء الكليّات بصياغتها الرسميّة كما وردت، ولا تترجمها ولا تختصرها. وإذا كان',
+          '  التخصّص مندرجاً ضمن كليّة أوسع فقل «ضمن …» ولا توحِ بأنّ الوثيقة سمّته بذاته.',
+          '- لا تخلط بين البكالوريوس الأكاديمي والبكالوريوس التقني/التطبيقي والدبلوم المتوسط؛ ثلاث',
+          '  درجات مختلفة، سمِّ كلّاً منها باسمه كما ورد في القائمة.',
           '- لا تبدأ بمجاملة افتتاحيّة ولا بتلخيص لما ستفعله؛ ابدأ بالعنوان الأوّل مباشرة.',
         ].join('\n')
       : [
@@ -668,7 +844,8 @@ export function buildNarrativeRequest(
           '   certified psychometric assessment.',
           '2) Three strengths — one sentence each, grounded in the scores rather than in flattery.',
           '3) Two cautions — what may wear this student down on this path, honestly and respectfully.',
-          '4) The five majors — in the same order and with the exact names given in the list below,',
+          '4) The approved majors — all of them, in the same order and with the exact names given in the',
+          '   list below (there may be fewer than five: the list is filtered to what the path opens),',
           '   one sentence per major on why it fits THIS student\'s interests, plus one realistic',
           '   sentence about their average against the indicative acceptance average, taken from the list.',
           '5) Next step — one line pointing at a tool inside the app: the Education ROI Calculator,',
@@ -690,6 +867,15 @@ export function buildNarrativeRequest(
           '  instead of closing the door.',
           '- If the student has no average entered, do not guess it; ask them to add it to their profile',
           '  so the analysis gets sharper.',
+          '- Never recommend a major the student\'s path does not open in the supplied Higher Education',
+          '  Council table. Where the major they lean towards is closed by their track, say so first and',
+          '  plainly — before the average and before the cost — because an average cannot open a college',
+          '  the track table does not list at all, then name the real alternative from the approved list.',
+          '- Quote college names in the official wording exactly as supplied; do not translate or shorten',
+          '  them. Where a major sits under a broader college, write “within …” and never imply the',
+          '  document named the major itself.',
+          '- Never merge an academic bachelor, a technical/applied bachelor and an intermediate diploma.',
+          '  They are three different qualifications; name each as the list names it.',
           '- Do not open with a compliment or a summary of what you are about to do; start at heading one.',
         ].join('\n');
 
@@ -710,7 +896,7 @@ export function buildNarrativeRequest(
             : 'No follow-up questions were used this time; rely on the twelve fixed questions alone.',
         ];
 
-  const reachable = reachableMajors(profile.grade, totals);
+  const reachable = reachableMajors(profile.grade, totals, profile.path);
   const reachableBlock =
     reachable.length > 0
       ? [
@@ -752,9 +938,11 @@ export function buildNarrativeRequest(
           `الميول الأعلى بالترتيب: ${top.join(' ثمّ ')}.`,
           ...adaptiveBlock,
           '',
-          'القائمة النهائيّة — خمسة تخصّصات رتّبها التطبيق حسابيّاً من بيانات التطبيق نفسه.',
-          'اكتب عنها بهذا الترتيب وبهذه الأسماء حرفيّاً، ولا تضف ولا تستبدل ولا تحذف أيّ تخصّص:',
+          'القائمة النهائيّة — تخصّصات رتّبها التطبيق حسابيّاً من بيانات التطبيق نفسه، وصُفّيت على',
+          'ما يفتحه مسار الطالب في الجدول الرسميّ. اكتب عنها بهذا الترتيب وبهذه الأسماء حرفيّاً،',
+          'ولا تضف ولا تستبدل ولا تحذف أيّ تخصّص:',
           ...shortlistLines(matches, profile),
+          ...blockedLines(blocked, profile),
           ...reachableBlock,
         ].join('\n')
       : [
@@ -766,10 +954,11 @@ export function buildNarrativeRequest(
           `Strongest interests in order: ${top.join(', then ')}.`,
           ...adaptiveBlock,
           '',
-          'The final list — five majors the app ranked arithmetically from its own dataset.',
-          'Write about them in this order and with these exact names; add nothing, swap nothing,',
-          'drop nothing:',
+          'The final list — majors the app ranked arithmetically from its own dataset and then filtered',
+          'to what the student’s path opens in the official table. Write about them in this order and',
+          'with these exact names; add nothing, swap nothing, drop nothing:',
           ...shortlistLines(matches, profile),
+          ...blockedLines(blocked, profile),
           ...reachableBlock,
         ].join('\n');
 
@@ -781,8 +970,13 @@ export function buildNarrativeRequest(
 const REPORT_PREFIX = 'murshidi.riasec.';
 const GUEST_SCOPE = 'guest';
 
-/** Bump when the stored shape changes; an older record is then ignored, not misread. */
-export const REPORT_VERSION = 3;
+/**
+ * Bump when the stored shape changes; an older record is then ignored, not
+ * misread. v4 replaced the pre-2023 `branch` with the two-track `StudyPath` and
+ * added the blocked-match list, so a v3 record cannot be read forward: its
+ * branch value says nothing about which colleges the new table opens.
+ */
+export const REPORT_VERSION = 4;
 
 export interface StoredReport {
   version: number;
@@ -794,14 +988,17 @@ export interface StoredReport {
   adaptiveAnswers: AdaptiveAnswer[];
   adaptiveUsed: boolean;
   top: Trait[];
+  /** The recommended majors as issued: ids and their match index. */
   shortlist: { id: string; fit: number }[];
+  /** Strong interest matches the student's path does not open, as issued. */
+  blocked: { id: string; fit: number }[];
   grade: number | null;
   /**
-   * The stream id, not its label. A report taken with the English interface and
-   * reopened in Arabic has to show العلمي, not "Scientific", so the label is
-   * resolved at render time and only the identity is stored.
+   * The path identifiers, not their labels. A report taken with the English
+   * interface and reopened in Arabic has to show «الحقل الصحّي», not "Health",
+   * so labels are resolved at render time and only the identity is stored.
    */
-  branch: BranchId | null;
+  path: StudyPath | null;
   /** '' when the written analysis was never produced. */
   narrative: string;
   narrativeModel: string;
@@ -826,6 +1023,21 @@ function isScores(value: unknown): value is TraitScores {
   return TRAITS.every((trait) => typeof record[trait] === 'number' && Number.isFinite(record[trait]));
 }
 
+/** Reads an `{id, fit}` list out of storage, dropping anything malformed. */
+function readIdList(value: unknown): { id: string; fit: number }[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) =>
+    entry && typeof entry === 'object' && typeof (entry as { id?: unknown }).id === 'string'
+      ? [
+          {
+            id: (entry as { id: string }).id,
+            fit: typeof (entry as { fit?: unknown }).fit === 'number' ? (entry as { fit: number }).fit : 0,
+          },
+        ]
+      : [],
+  );
+}
+
 export function loadReport(userId: string | null): StoredReport | null {
   const store = storageFor(userId);
   if (!store) return null;
@@ -846,13 +1058,13 @@ export function loadReport(userId: string | null): StoredReport | null {
       adaptiveAnswers: Array.isArray(parsed.adaptiveAnswers) ? parsed.adaptiveAnswers : [],
       adaptiveUsed: parsed.adaptiveUsed === true,
       top: parsed.top.filter(isTrait),
-      shortlist: parsed.shortlist.flatMap((entry) =>
-        entry && typeof entry === 'object' && typeof entry.id === 'string'
-          ? [{ id: entry.id, fit: typeof entry.fit === 'number' ? entry.fit : 0 }]
-          : [],
-      ),
+      shortlist: readIdList(parsed.shortlist),
+      blocked: readIdList(parsed.blocked),
       grade: typeof parsed.grade === 'number' ? parsed.grade : null,
-      branch: isBranchId(parsed.branch) ? parsed.branch : null,
+      // Validated against tawjihi.ts rather than trusted: a hand-edited or
+      // half-migrated record must not put a field id the Ministry never
+      // published in front of an eligibility verdict.
+      path: readStudyPath(parsed),
       narrative: typeof parsed.narrative === 'string' ? parsed.narrative : '',
       narrativeModel: typeof parsed.narrativeModel === 'string' ? parsed.narrativeModel : '',
     };
@@ -871,11 +1083,18 @@ export function persistReport(userId: string | null, report: StoredReport): void
   }
 }
 
-/** Resolves stored major ids against the live dataset; ids that vanished are dropped. */
-export function resolveShortlist(entries: { id: string; fit: number }[]): MajorMatch[] {
+/**
+ * Resolves stored major ids against the live dataset; ids that vanished are
+ * dropped. The path verdict is recomputed rather than stored, so a report
+ * reopened after the student changes their track shows today's truth.
+ */
+export function resolveShortlist(
+  entries: { id: string; fit: number }[],
+  path: StudyPath | null,
+): ShortlistEntry[] {
   return entries.flatMap((entry) => {
     const major = majorsData.find((candidate) => candidate.id === entry.id);
-    return major ? [{ major, fit: entry.fit }] : [];
+    return major ? [entryFor({ major, fit: entry.fit }, isPathComplete(path) ? path : null)] : [];
   });
 }
 

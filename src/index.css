@@ -219,6 +219,14 @@ body {
   color: #374151;
   vertical-align: middle;
 }
+/* Same hazard as the header alignment above, one line down: `.gov-table td` is
+   (0,1,1) and outranks the (0,1,0) `text-gov-muted` utility, so the label column
+   of every two-column table in the app rendered at the body colour instead of
+   the muted one — 19 cells across seven screens, with the class silently inert.
+   This restores the intended colour without moving the whole component block
+   into @layer components, which would hand EVERY utility priority over EVERY
+   .gov-* rule at once and change screens nobody is able to re-check right now. */
+.gov-table td.text-gov-muted { color: #6B7280; }
 .gov-table tr:last-child td { border-bottom: none; }
 
 /* Tabular nums for stats */

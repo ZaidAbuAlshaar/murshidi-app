@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
+  Compass,
   FileText,
   KeyRound,
   MessageSquare,
@@ -18,6 +20,8 @@ import { useAuth } from '../context/AuthContext';
 import { aiStatus, askAi } from '../lib/ai';
 import type { AiProfileContext } from '../lib/ai';
 import { DEFAULT_MODEL, MODEL_OPTIONS, modelOption, preferredModel, selectModel } from '../lib/ai/config';
+import { readStudyPath, safeCity, safeGrade } from '../lib/ai/student';
+import { isPathComplete, pathLabel } from '../lib/tawjihi';
 import { hasKeyOverride, setKeyOverride } from '../lib/openrouter';
 import { recordActivity } from '../lib/activity';
 
@@ -105,22 +109,29 @@ export default function Chat() {
 
   const storageKey = STORAGE_PREFIX + (user?.id ?? 'guest');
 
+  /**
+   * Only machine-checkable facts reach the advisor. The student's display name
+   * used to be concatenated into the system prompt, which made a 60-character
+   * text field an instruction channel into the one prompt enforcing the app's
+   * honesty rules; it is gone, and every remaining value is validated in
+   * src/lib/ai/student.ts before it travels.
+   */
   const profile = useMemo<AiProfileContext>(
     () => ({
-      name: user?.name,
-      grade: user?.grade ?? null,
-      branch: user?.branch ?? null,
-      city: user?.city ?? null,
+      grade: safeGrade(user?.grade),
+      city: safeCity(user?.city),
+      path: readStudyPath(user),
       lang,
     }),
-    [user?.name, user?.grade, user?.branch, user?.city, lang],
+    [user, lang],
   );
 
   return <ChatThread key={storageKey} storageKey={storageKey} profile={profile} />;
 }
 
 function ChatThread({ storageKey, profile }: { storageKey: string; profile: AiProfileContext }) {
-  const { t } = useLang();
+  const { lang, t } = useLang();
+  const navigate = useNavigate();
   const keyboardOpen = useKeyboardOpen();
 
   const [messages, setMessages] = useState<ChatTurn[]>(() => loadThread(storageKey));
@@ -278,6 +289,11 @@ function ChatThread({ storageKey, profile }: { storageKey: string; profile: AiPr
 
   const empty = messages.length === 0;
 
+  // The advisor answers eligibility questions from the student's own row of the
+  // Ministry's table, so the page says plainly which row it is using — and says
+  // nothing about eligibility at all when no path has been set.
+  const pathKnown = isPathComplete(profile.path);
+
   return (
     <div className="h-screen bg-gov-bg flex flex-col overflow-hidden">
       <PageHeader
@@ -368,6 +384,35 @@ function ChatThread({ storageKey, profile }: { storageKey: string; profile: AiPr
           )}
         </div>
 
+        {/* Which row of the Ministry's table this conversation is grounded in */}
+        <div className="gov-card p-3">
+          <div className="flex items-start gap-2">
+            <span
+              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                pathKnown ? 'bg-gov-navy/10 text-gov-navy' : 'bg-gov-bg text-gov-muted'
+              }`}
+            >
+              <Compass size={16} aria-hidden="true" />
+            </span>
+            <div className="flex-1 min-w-0 text-start">
+              <p className="text-xs font-bold text-gov-ink">
+                {t('ai.path.title')}:{' '}
+                <span className={pathKnown ? 'text-gov-navy' : 'text-gov-muted'}>
+                  {pathKnown ? pathLabel(profile.path ?? null, lang) : t('ai.path.unset')}
+                </span>
+              </p>
+              <p className="mt-1 text-[10.5px] leading-relaxed text-gov-muted">
+                {pathKnown ? t('ai.path.grounded') : t('ai.path.unsetNote')}
+              </p>
+              {!pathKnown && (
+                <button type="button" onClick={() => navigate('/profile/edit')} className="btn-ghost mt-2">
+                  {t('ai.path.cta')}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Opening message — not part of the stored thread */}
         <div className="flex justify-start">
           <div className="max-w-[88%]">
@@ -440,7 +485,7 @@ function ChatThread({ storageKey, profile }: { storageKey: string; profile: AiPr
               type="button"
               onClick={retry}
               disabled={!lastQuestion}
-              className="btn-secondary text-xs px-3 min-h-[44px] flex items-center gap-1.5"
+              className="btn-secondary px-3 min-h-[44px] flex items-center gap-1.5"
             >
               <RotateCcw size={14} aria-hidden="true" />
               {t('ai.retry')}

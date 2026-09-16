@@ -114,7 +114,7 @@ export interface AiResult {
 
 export function askAi(prompt: string, opts?: AskOptions): Promise<AiResult>;
 export function aiStatus(): { configured: boolean; model: string };
-export function buildGroundingBlock(lang: 'ar' | 'en'): string;
+export function buildGroundingBlock(lang: 'ar' | 'en', path?: StudyPath | null): string;
 ```
 
 Requirements for `askAi`:
@@ -135,7 +135,10 @@ Requirements for `askAi`:
 - Key resolution order: `localStorage['murshidi.or.key']` override → `import.meta.env.VITE_OPENROUTER_KEY`.
 - `buildGroundingBlock` returns a compact text block of the REAL app data (the majors table from
   `src/data/majors.ts`: name, acceptance average, government tuition, duration, category) so the
-  model answers from app data instead of memorised numbers.
+  model answers from app data instead of memorised numbers. **Widened in round two** (see
+  `docs/TAWJIHI_SPEC.md` §3.7): it takes the student's `StudyPath` as an optional second argument
+  and appends the `majorsFor(path)` partition, so the prompt can forbid recommending a college the
+  path cannot reach. The argument is optional, so the round-one call shape still compiles.
 - The system prompt must instruct the model, in Arabic: answer in the user's language, use only
   the supplied data block for figures, say "لا أعرف" rather than inventing a number, keep answers
   short and numbered, always close by pointing at a concrete app tool, and never present itself as

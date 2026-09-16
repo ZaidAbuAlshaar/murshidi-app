@@ -1,29 +1,34 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Award, ChevronLeft, ChevronRight, Download, Globe, LogIn, LogOut,
-  Pencil, Share2, ShieldCheck, Trash2, UserRound,
+  Award, BookMarked, ChevronLeft, ChevronRight, Compass, Download, Globe, LogIn, LogOut,
+  Pencil, Share2, ShieldCheck, Trash2, UserRound, X,
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import HashemiteEmblem from '../components/HashemiteEmblem';
 import { useLang } from '../i18n/LangContext';
 import type { TranslationKey } from '../i18n/translations';
-import { branchLabelKeys } from '../i18n/ns/auth';
 import { useAuth } from '../context/AuthContext';
+import { StudyPathPicker } from '../components/PathPicker';
 import {
-  BRANCH_IDS, governorates, initialsOf, isBranchId, isNameAvailable, localizeCity, validateGrade,
+  governorates, hasCompletePath, initialsOf, isNameAvailable, localizeCity, passwordHashMode,
+  validateGrade,
 } from '../lib/account';
-import type { BranchId } from '../lib/account';
+import type { StudyPath } from '../lib/account';
+import { isPathComplete, pathLabel } from '../lib/tawjihi';
 import {
-  buildExportBundle, downloadJson, getActivitySummary, getSavedReports,
+  buildExportBundle, downloadJson, getActivitySummary, getSavedMajors, getSavedReports,
+  toggleSavedMajor,
 } from '../lib/activity';
 import type { ActivitySummary, SavedReport } from '../lib/activity';
+import { majorsData } from '../data/majors';
+import { isoDate, num } from '../lib/numerals';
 
 const REPORT_TITLE_KEYS = {
   interests: 'profile.reports.interests',
   roi: 'profile.reports.roi',
   compare: 'profile.reports.compare',
-} as const satisfies Record<SavedReport['kind'], string>;
+} as const satisfies Record<SavedReport['kind'], TranslationKey>;
 
 const REPORT_ROUTES: Record<SavedReport['kind'], string> = {
   interests: '/personality',
@@ -31,8 +36,22 @@ const REPORT_ROUTES: Record<SavedReport['kind'], string> = {
   compare: '/compare',
 };
 
-function branchLabelKey(branch: BranchId | null): TranslationKey {
-  return branch ? branchLabelKeys[branch] : 'auth.branch.none';
+function majorName(id: string, lang: 'ar' | 'en'): string {
+  const major = majorsData.find((m) => m.id === id);
+  if (!major) return id;
+  return lang === 'ar' ? major.nameAr : major.nameEn;
+}
+
+/**
+ * Arabic agrees its counted noun with the number — one, two, 3–10 and 11+ each
+ * take a different form, and «2 تخصّص محفوظ» is wrong. One and two carry the
+ * count in the word itself, so the digit is dropped for those.
+ */
+function savedCountLabel(n: number): { key: TranslationKey; showDigit: boolean } {
+  if (n === 1) return { key: 'profile.savedMajors.countOne', showDigit: false };
+  if (n === 2) return { key: 'profile.savedMajors.countTwo', showDigit: false };
+  if (n <= 10) return { key: 'profile.savedMajors.countFew', showDigit: true };
+  return { key: 'profile.savedMajors.count', showDigit: true };
 }
 
 export default function Profile() {
@@ -50,6 +69,19 @@ export default function Profile() {
   const scope = user ? user.id : 'guest';
   const summary = useMemo<ActivitySummary>(() => getActivitySummary(scope), [scope]);
   const reports = useMemo<SavedReport[]>(() => getSavedReports(scope), [scope]);
+  const [savedMajors, setSavedMajors] = useState<string[]>(() => getSavedMajors(scope));
+
+  // The privacy list below states what happened to the password. Which of the
+  // two lines is true depends on whether this origin has WebCrypto at all.
+  const degraded = useMemo(() => passwordHashMode() === 'checksum', []);
+
+  const removeSaved = useCallback(
+    (id: string) => {
+      toggleSavedMajor(id, scope);
+      setSavedMajors(getSavedMajors(scope));
+    },
+    [scope],
+  );
 
   const exportData = useCallback(() => {
     const bundle = buildExportBundle(user, isGuest);
@@ -73,7 +105,7 @@ export default function Profile() {
   }, [t]);
 
   const memberYear = user ? new Date(user.createdAt).getFullYear().toString() : null;
-  const hasActivity = summary.toolsUsed + summary.savedMajors + summary.savedReports > 0;
+  const hasActivity = summary.toolsUsed + savedMajors.length + summary.savedReports > 0;
 
   return (
     <div className="min-h-screen bg-gov-bg pb-28">
@@ -101,7 +133,8 @@ export default function Profile() {
                   </span>
                 )}
                 <span className="gov-badge gov-badge-neutral">
-                  {t('profile.branchLabel')}: {t(branchLabelKey(user.branch))}
+                  {t('profile.pathLabel')}:{' '}
+                  {hasCompletePath(user) ? pathLabel(user.path, lang) : t('auth.path.none')}
                 </span>
                 {memberYear && (
                   <span className="gov-badge gov-badge-neutral tabular">
@@ -132,12 +165,40 @@ export default function Profile() {
         )}
       </div>
 
+      {/* The study path — the one fact the rest of the app reads */}
+      <div className="bg-white border-b border-gov-line px-4 py-3">
+        {user && !hasCompletePath(user) && (
+          <div className="rounded-gov border border-gov-gold/50 bg-gov-bg-soft p-3 mb-2">
+            <p className="text-[12.5px] font-bold text-gov-ink text-start">{t('profile.path.set')}</p>
+            <p className="text-[11.5px] text-gov-muted leading-relaxed mt-1 text-start">
+              {t('profile.path.setSub')}
+            </p>
+            <button onClick={() => navigate('/profile/edit')} className="btn-secondary w-full mt-2">
+              {t('profile.edit.open')}
+            </button>
+          </div>
+        )}
+        <button
+          onClick={() => navigate('/field')}
+          className="w-full flex items-center gap-3 text-start rounded-gov border border-gov-line px-3 py-2.5 hover:bg-gov-bg-soft transition-colors"
+        >
+          <div className="w-9 h-9 rounded-md bg-gov-navy/10 flex items-center justify-center text-gov-navy shrink-0">
+            <Compass size={17} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gov-ink">{t('profile.field.open')}</p>
+            <p className="text-[11px] text-gov-muted mt-0.5 leading-relaxed">{t('profile.field.openSub')}</p>
+          </div>
+          <ChevronEnd size={16} className="text-gov-muted shrink-0" />
+        </button>
+      </div>
+
       {/* Activity — counted, never invented */}
       <div className="bg-white border-b border-gov-line px-4 py-3">
         <p className="gov-section-title mb-2">{t('profile.activity')}</p>
         <div className="grid grid-cols-3 gap-2">
           <ActivityCard label={t('profile.activity.toolsUsed')} value={summary.toolsUsed} />
-          <ActivityCard label={t('profile.activity.savedMajors')} value={summary.savedMajors} />
+          <ActivityCard label={t('profile.activity.savedMajors')} value={savedMajors.length} />
           <ActivityCard label={t('profile.activity.savedReports')} value={summary.savedReports} />
         </div>
         <p className="text-[10.5px] text-gov-muted leading-relaxed mt-2">
@@ -212,8 +273,8 @@ export default function Profile() {
                           {t(REPORT_TITLE_KEYS[report.kind])}
                         </span>
                         {report.at && (
-                          <span className="text-[10.5px] text-gov-muted tabular shrink-0">
-                            {new Date(report.at).toLocaleDateString(lang === 'ar' ? 'ar-JO' : 'en-GB')}
+                          <span className="text-[10.5px] text-gov-muted tabular shrink-0" dir="ltr">
+                            {isoDate(report.at)}
                           </span>
                         )}
                         <ChevronEnd size={15} className="text-gov-muted shrink-0" />
@@ -226,11 +287,42 @@ export default function Profile() {
 
             <div className="px-4 py-3">
               <p className="text-sm font-semibold text-gov-ink">{t('profile.activity.savedMajors')}</p>
-              <p className="text-[11.5px] text-gov-muted mt-1">
-                {summary.savedMajors === 0
-                  ? t('profile.savedMajors.none')
-                  : `${summary.savedMajors} ${t('profile.savedMajors.count')}`}
-              </p>
+              {savedMajors.length === 0 ? (
+                <p className="text-[11.5px] text-gov-muted mt-1 leading-relaxed">
+                  {t('profile.savedMajors.none')}
+                </p>
+              ) : (
+                <>
+                  <p className="text-[11.5px] text-gov-muted mt-1">
+                    {savedCountLabel(savedMajors.length).showDigit && (
+                      <span className="tabular">{num(savedMajors.length)} </span>
+                    )}
+                    {t(savedCountLabel(savedMajors.length).key)}
+                  </p>
+                  <ul className="mt-2 space-y-1.5">
+                    {savedMajors.map((id) => (
+                      <li
+                        key={id}
+                        className="flex items-center gap-2 rounded-gov border border-gov-line px-2 py-1.5"
+                      >
+                        <BookMarked size={14} className="text-gov-navy shrink-0" />
+                        <span className="flex-1 min-w-0 text-[12.5px] text-gov-body truncate text-start">
+                          {majorName(id, lang)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeSaved(id)}
+                          aria-label={t('profile.savedMajors.remove')}
+                          title={t('profile.savedMajors.remove')}
+                          className="w-11 h-11 -my-2 rounded-gov flex items-center justify-center text-gov-muted hover:bg-gov-bg-soft shrink-0"
+                        >
+                          <X size={15} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
 
             <button
@@ -291,10 +383,10 @@ export default function Profile() {
                   {([
                     'auth.privacy.noId',
                     'auth.privacy.local',
-                    'auth.privacy.hash',
+                    degraded ? 'auth.privacy.hashWeak' : 'auth.privacy.hash',
                     'auth.privacy.ai',
                     'auth.privacy.wipe',
-                  ] as const).map((key) => (
+                  ] as TranslationKey[]).map((key) => (
                     <li key={key} className="flex items-start gap-2">
                       <span className="w-1 h-1 rounded-full bg-gov-muted shrink-0 mt-2" />
                       <span className="text-[11.5px] text-gov-muted leading-relaxed">{t(key)}</span>
@@ -374,8 +466,19 @@ export default function Profile() {
           <div className="flex items-center justify-center gap-2 mb-2">
             <HashemiteEmblem size={24} />
           </div>
+          {/* The emblem and the two names are here because the data on the
+              screens above is published by that ministry — not because anyone
+              endorsed this app. The two lines below say so, in that order, and
+              must not be removed while the emblem stays. */}
           <p className="text-[11px] font-semibold text-gov-body">{t('app.kingdom')}</p>
           <p className="text-[11px] text-gov-muted">{t('app.ministry')}</p>
+          <div className="my-2 h-px bg-gov-line" />
+          <p className="text-[10.5px] font-semibold text-gov-body leading-relaxed">
+            {t('profile.footer.independent')}
+          </p>
+          <p className="text-[10px] text-gov-muted leading-relaxed mt-1">
+            {t('profile.footer.dataSource')}
+          </p>
           <div className="my-2 h-px bg-gov-line" />
           <p className="text-[10px] text-gov-muted">{t('app.name')} · {t('app.version')}</p>
         </div>
@@ -402,7 +505,7 @@ export function ProfileEdit() {
   const [name, setName] = useState(user?.name ?? '');
   const [grade, setGrade] = useState(user?.grade === null || user?.grade === undefined ? '' : String(user.grade));
   const [city, setCity] = useState(user?.city ?? '');
-  const [branch, setBranch] = useState<BranchId | ''>(user?.branch ?? '');
+  const [path, setPath] = useState<StudyPath | null>(user?.path ?? null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -425,11 +528,17 @@ export function ProfileEdit() {
       setError(t('profile.edit.error'));
       return;
     }
+    // A half-chosen path is worse than none: the rest of the app would show a
+    // track with no college list behind it. Either it is complete or it is null.
+    if (path && !isPathComplete(path)) {
+      setError(t('auth.error.path'));
+      return;
+    }
     updateProfile({
       name: clean,
       grade: parsed.grade,
       city: city || cities[0],
-      branch: branch === '' ? null : branch,
+      path,
     });
     setSaved(true);
   };
@@ -451,23 +560,11 @@ export function ProfileEdit() {
             />
           </div>
 
-          <div>
-            <label className="gov-label" htmlFor="edit-branch">{t('auth.field.branch')}</label>
-            <select
-              id="edit-branch"
-              className="gov-input"
-              value={branch}
-              onChange={(e) => {
-                setBranch(isBranchId(e.target.value) ? e.target.value : '');
-                setSaved(false);
-              }}
-            >
-              <option value="">{t('auth.branch.none')}</option>
-              {BRANCH_IDS.map((b) => (
-                <option key={b} value={b}>{t(branchLabelKeys[b])}</option>
-              ))}
-            </select>
-          </div>
+          <StudyPathPicker
+            value={path}
+            onChange={(next) => { setPath(next); setSaved(false); }}
+            idPrefix="edit"
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div>

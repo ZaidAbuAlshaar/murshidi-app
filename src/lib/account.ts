@@ -1,40 +1,35 @@
 // Local-first accounts for Murshidi. There is no backend: every account, the
 // active session and the guest flag live in this device's localStorage.
 //
-// Honest note about what this is and is not:
-// passwords are stored as a SHA-256 digest (WebCrypto) rather than plain text,
-// which keeps a casual reader of localStorage from seeing the password itself.
-// It is NOT protection against someone who holds the unlocked device — there is
-// no salt, no key-stretching and no encryption of the profile fields. The UI
-// copy in src/i18n/ns/auth.ts says exactly that; do not upgrade the claim here
-// or there.
+// Honest note about what this is and is not.
+//
+// Passwords are never stored in the clear. On a secure origin (https, or
+// localhost) they are stored as a SHA-256 digest computed by WebCrypto. On a
+// plain-http origin — which is how the app is opened from a phone on a LAN IP
+// during testing — `crypto.subtle` does not exist at all, so a 128-bit
+// non-cryptographic checksum is used instead and the screen says so. Neither
+// form is protection against someone holding the unlocked device: there is no
+// salt, no key-stretching and no encryption of the profile fields.
+//
+// Every stored digest carries the algorithm that produced it as a prefix, so a
+// record written in one context is never checked with the other's algorithm and
+// silently mismatched. `passwordHashMode()` reports which one this context can
+// use, and src/i18n/ns/auth.ts carries copy for both cases. Do not upgrade the
+// claim in either place.
 
-export type BranchId =
-  | 'scientific'
-  | 'literary'
-  | 'health'
-  | 'industrial'
-  | 'commercial'
-  | 'shariah'
-  | 'informatics'
-  | 'hotel'
-  | 'agricultural';
+import {
+  LEGACY_BRANCHES,
+  findField,
+  findProgram,
+  isPathComplete,
+  type AcademicFieldId,
+  type LegacyBranchId,
+  type StudyPath,
+  type TrackId,
+  type VocationalProgramId,
+} from './tawjihi';
 
-export const BRANCH_IDS: readonly BranchId[] = [
-  'scientific',
-  'literary',
-  'health',
-  'industrial',
-  'commercial',
-  'shariah',
-  'informatics',
-  'hotel',
-  'agricultural',
-];
-
-export function isBranchId(value: unknown): value is BranchId {
-  return typeof value === 'string' && (BRANCH_IDS as readonly string[]).includes(value);
-}
+export type { StudyPath, TrackId, AcademicFieldId, VocationalProgramId, LegacyBranchId };
 
 /** The account fields the app is allowed to read and show. Never contains the hash. */
 export interface StudentProfile {
@@ -42,7 +37,8 @@ export interface StudentProfile {
   name: string;
   grade: number | null; // Tawjihi average 0–100
   city: string; // governorate label, in the language chosen at signup
-  branch: BranchId | null; // Tawjihi stream
+  /** Track + field / programme / legacy branch. null until the student chooses. */
+  path?: StudyPath | null;
   createdAt: string; // ISO
 }
 
@@ -51,7 +47,14 @@ export interface Account extends StudentProfile {
   passHash: string;
 }
 
-export type AuthError = 'name-taken' | 'not-found' | 'wrong-password' | 'invalid' | 'storage';
+export type AuthError =
+  | 'name-taken'
+  | 'not-found'
+  | 'wrong-password'
+  | 'invalid'
+  | 'storage'
+  /** The record was written where WebCrypto exists; this context cannot check it. */
+  | 'unverifiable-here';
 
 export interface AuthResult {
   ok: boolean;
@@ -64,7 +67,7 @@ export interface SignUpInput {
   password: string;
   grade: number | null;
   city: string;
-  branch: BranchId | null;
+  path: StudyPath | null;
 }
 
 const USERS_KEY = 'murshidi.accounts.v1';
@@ -101,6 +104,71 @@ export function localizeCity(city: string, lang: 'ar' | 'en'): string {
   return lang === 'ar' ? ar[index] : en[index];
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// The study path
+//
+// Jordan replaced the pre-2023 Tawjihi branches with two tracks. The branch
+// union this file used to export is gone; src/lib/tawjihi.ts owns the new model
+// and this file only validates, stores and migrates it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TRACK_IDS: readonly TrackId[] = ['academic', 'vocational', 'legacy'];
+
+function isLegacyBranchId(value: unknown): value is LegacyBranchId {
+  return typeof value === 'string' && LEGACY_BRANCHES.some((b) => b.id === value);
+}
+
+/** Accepts only the shapes tawjihi.ts can answer for; anything else becomes null. */
+export function sanitizePath(raw: unknown): StudyPath | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const track = r.track;
+  if (typeof track !== 'string' || !(TRACK_IDS as readonly string[]).includes(track)) return null;
+  if (track === 'academic') {
+    const field = findField(typeof r.field === 'string' ? r.field : undefined);
+    return field ? { track: 'academic', field: field.id as AcademicFieldId } : { track: 'academic' };
+  }
+  if (track === 'vocational') {
+    const program = findProgram(typeof r.program === 'string' ? r.program : undefined);
+    return program
+      ? { track: 'vocational', program: program.id as VocationalProgramId }
+      : { track: 'vocational' };
+  }
+  return isLegacyBranchId(r.branch) ? { track: 'legacy', branch: r.branch } : { track: 'legacy' };
+}
+
+/**
+ * Accounts stored before the two-track model existed carry a pre-2023 `branch`
+ * string. Those students are on the old plan, so the value moves across as a
+ * legacy branch rather than being dropped.
+ *
+ * Two of the old ids need care. 'shariah' is the same branch as 'sharia', just
+ * the older spelling here. 'health' had no counterpart in the pre-2023 plan at
+ * all, so the track is kept and the branch left unset — the profile then asks
+ * for it instead of this file inventing an answer.
+ */
+export function migrateBranchToPath(raw: unknown): StudyPath | null {
+  if (typeof raw !== 'string' || !raw) return null;
+  if (isLegacyBranchId(raw)) return { track: 'legacy', branch: raw };
+  if (raw === 'shariah') return { track: 'legacy', branch: 'sharia' };
+  return { track: 'legacy' };
+}
+
+function readStoredPath(record: Record<string, unknown>): StudyPath | null {
+  const fromPath = sanitizePath(record.path);
+  if (fromPath) return fromPath;
+  return migrateBranchToPath(record.branch);
+}
+
+/** True when the profile carries a path complete enough to answer with. */
+export function hasCompletePath(profile: StudentProfile | null | undefined): boolean {
+  return isPathComplete(profile?.path ?? null);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Storage helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
 function read<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -127,22 +195,99 @@ function removeKey(key: string): void {
   }
 }
 
-async function sha256(text: string): Promise<string> {
+// ─────────────────────────────────────────────────────────────────────────────
+// Password digests
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STRONG_PREFIX = 'sha256:';
+const CHECKSUM_PREFIX = 'w1:';
+const LEGACY_CHECKSUM_PREFIX = 'fnv';
+
+export type PasswordHashMode = 'sha-256' | 'checksum';
+
+/**
+ * Which digest this browsing context can actually produce. `crypto.subtle` is
+ * undefined on a non-secure origin, which is exactly the case the Auth screen
+ * has to disclose rather than claim SHA-256 regardless.
+ */
+export function passwordHashMode(): PasswordHashMode {
   try {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`murshidi:${text}`));
-    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    const subtle = typeof crypto !== 'undefined' ? crypto.subtle : undefined;
+    return subtle && typeof subtle.digest === 'function' ? 'sha-256' : 'checksum';
   } catch {
-    // Fallback for non-secure contexts: non-cryptographic hash (demo-grade only).
-    let h1 = 0xdeadbeef;
-    const s = `murshidi:${text}`;
-    for (let i = 0; i < s.length; i++) {
-      h1 = Math.imul(h1 ^ s.charCodeAt(i), 2654435761);
-    }
-    return `fnv${(h1 >>> 0).toString(16)}`;
+    return 'checksum';
   }
 }
 
-/** Accounts written before the branch field existed are normalised on read. */
+async function strongDigest(text: string): Promise<string | null> {
+  if (passwordHashMode() !== 'sha-256') return null;
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A 128-bit non-cryptographic checksum, used only where WebCrypto is missing.
+ * Four independently-seeded lanes, so two different passwords colliding is not
+ * a realistic event — but it is still a checksum, it is reversible by brute
+ * force, and the UI says so wherever it is in use.
+ */
+function checksum128(text: string): string {
+  const seeds = [0x811c9dc5, 0xdeadbeef, 0x9e3779b9, 0x85ebca6b];
+  const lanes = seeds.slice();
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    for (let lane = 0; lane < lanes.length; lane++) {
+      lanes[lane] = Math.imul(lanes[lane] ^ (code + lane * 0x27d4eb2f + i), 2654435761);
+      lanes[lane] = (lanes[lane] << 13) | (lanes[lane] >>> 19);
+    }
+  }
+  return lanes.map((l) => (l >>> 0).toString(16).padStart(8, '0')).join('');
+}
+
+/** The 32-bit hash round one wrote on non-secure origins. Kept only to read it. */
+function legacyChecksum32(text: string): string {
+  let h = 0xdeadbeef;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 2654435761);
+  return `${LEGACY_CHECKSUM_PREFIX}${(h >>> 0).toString(16)}`;
+}
+
+function salted(password: string): string {
+  return `murshidi:${password}`;
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const strong = await strongDigest(salted(password));
+  return strong ? `${STRONG_PREFIX}${strong}` : `${CHECKSUM_PREFIX}${checksum128(salted(password))}`;
+}
+
+type VerifyOutcome = 'match' | 'mismatch' | 'unverifiable';
+
+async function verifyPassword(password: string, stored: string): Promise<VerifyOutcome> {
+  if (!stored) return 'mismatch';
+  if (stored.startsWith(CHECKSUM_PREFIX)) {
+    return `${CHECKSUM_PREFIX}${checksum128(salted(password))}` === stored ? 'match' : 'mismatch';
+  }
+  if (stored.startsWith(LEGACY_CHECKSUM_PREFIX)) {
+    return legacyChecksum32(salted(password)) === stored ? 'match' : 'mismatch';
+  }
+  const digest = await strongDigest(salted(password));
+  // A SHA-256 record (prefixed, or bare hex from round one) opened where
+  // WebCrypto does not exist cannot be checked at all. Saying "wrong password"
+  // there would be false, so the caller gets its own error for this case.
+  if (digest === null) return 'unverifiable';
+  const bare = stored.startsWith(STRONG_PREFIX) ? stored.slice(STRONG_PREFIX.length) : stored;
+  return digest === bare ? 'match' : 'mismatch';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Records
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Accounts written under the old branch model are migrated on read. */
 function normalise(raw: unknown): Account | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
@@ -152,7 +297,7 @@ function normalise(raw: unknown): Account | null {
     name: r.name,
     grade: typeof r.grade === 'number' && Number.isFinite(r.grade) ? r.grade : null,
     city: typeof r.city === 'string' ? r.city : '',
-    branch: isBranchId(r.branch) ? r.branch : null,
+    path: readStoredPath(r),
     createdAt: typeof r.createdAt === 'string' ? r.createdAt : new Date(0).toISOString(),
     passHash: typeof r.passHash === 'string' ? r.passHash : '',
   };
@@ -165,7 +310,7 @@ export function toProfile(account: Account): StudentProfile {
     name: account.name,
     grade: account.grade,
     city: account.city,
-    branch: account.branch,
+    path: account.path ?? null,
     createdAt: account.createdAt,
   };
 }
@@ -252,9 +397,9 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
     name: cleanName,
     grade: input.grade,
     city: input.city,
-    branch: input.branch,
+    path: sanitizePath(input.path),
     createdAt: new Date().toISOString(),
-    passHash: await sha256(input.password),
+    passHash: await hashPassword(input.password),
   };
   users.push(account);
   if (!write(USERS_KEY, users) || !write(SESSION_KEY, account.id)) return { ok: false, error: 'storage' };
@@ -267,7 +412,9 @@ export async function signIn(name: string, password: string): Promise<AuthResult
   if (!cleanName || !password) return { ok: false, error: 'invalid' };
   const account = getUsers().find((u) => u.name.trim().toLowerCase() === cleanName);
   if (!account) return { ok: false, error: 'not-found' };
-  if ((await sha256(password)) !== account.passHash) return { ok: false, error: 'wrong-password' };
+  const outcome = await verifyPassword(password, account.passHash);
+  if (outcome === 'unverifiable') return { ok: false, error: 'unverifiable-here' };
+  if (outcome === 'mismatch') return { ok: false, error: 'wrong-password' };
   if (!write(SESSION_KEY, account.id)) return { ok: false, error: 'storage' };
   setGuestMode(false);
   return { ok: true, user: toProfile(account) };
@@ -296,14 +443,20 @@ export function updateAccount(
     name: nextName,
     grade: patch.grade === undefined ? current.grade : patch.grade,
     city: patch.city === undefined ? current.city : patch.city,
-    branch: patch.branch === undefined ? current.branch : patch.branch,
+    path: patch.path === undefined ? (current.path ?? null) : sanitizePath(patch.path),
   };
   users[index] = next;
   if (!write(USERS_KEY, users)) return null;
   return toProfile(next);
 }
 
-/** Removes the account record and its session. Activity data is cleared by the caller. */
+/**
+ * Removes the account record and its session. The rest of what this device
+ * holds for that identity — activity, the AI conversation, the interests report
+ * — is cleared by `clearIdentity` in src/lib/activity.ts, which AuthContext
+ * calls alongside this. Neither is optional: the delete-account copy promises
+ * both.
+ */
 export function deleteAccount(id: string): boolean {
   const users = getUsers().filter((u) => u.id !== id);
   const saved = write(USERS_KEY, users);

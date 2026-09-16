@@ -11,7 +11,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/ts-test-register.mjs --test src/lib/tawjihi.test.ts",
     "preview": "vite preview",
+    "tawjihi:gen": "node scripts/gen-tawjihi.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "android:sync": "npm run build && npx cap sync android",
     "android:open": "npx cap open android"

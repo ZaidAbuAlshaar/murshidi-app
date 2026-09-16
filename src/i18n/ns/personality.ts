@@ -135,7 +135,7 @@ export const personalityAr = {
   'personality.report.tally.adaptive': 'متابعة',
   'personality.report.tally.total': 'المجموع',
   'personality.report.radar': 'خريطة الميول',
-  'personality.report.shortlist': 'التخصّصات الخمسة الأكثر انسجاماً',
+  'personality.report.shortlist': 'التخصّصات الأكثر انسجاماً مع ميولك',
   'personality.report.rank': '#',
   'personality.report.major': 'التخصّص',
   'personality.report.fit': 'مؤشّر الانسجام',
@@ -146,8 +146,25 @@ export const personalityAr = {
   'personality.report.savedGuest': 'تقرير الضيف يبقى في هذه الجلسة فقط — أنشئ حساباً إن أردت حفظه.',
   'personality.report.previous': 'هذا آخر تقرير محفوظ لك على هذا الجهاز.',
   'personality.report.profile': 'بيانات الطالب المستخدمة',
-  'personality.report.branch': 'فرع التوجيهي',
+  'personality.report.path': 'مسارك الدراسي',
   'personality.report.none': 'غير محدّد',
+
+  // ── The Higher Education Council table: what this path opens ──
+  'personality.path.open': 'يفتحه مسارك',
+  'personality.path.technical': 'بكالوريوس تقني/تطبيقي',
+  'personality.path.closed': 'لا يفتحه مسارك',
+  'personality.path.unchecked': 'لم يُتحقّق',
+  'personality.path.filtered': 'القائمة مقتصرة على ما يفتحه مسارك في جدول الكليّات المسموح بها الصادر عن مجلس التعليم العالي (قرار 8 أيلول 2024، يسري من 2026/2027).',
+  'personality.path.unfiltered': 'لم تحدّد مسارك بعد، لذلك رُتّبت القائمة حسب ميولك وحدها ولم يُتحقّق من إتاحة أيّ تخصّص لك.',
+  'personality.path.source': 'المصدر: ملحق قرار مجلس التعليم العالي بالكليّات المسموح بها لكلّ مسار وحقل، الصادر بتاريخ 8 أيلول 2024 ويسري اعتباراً من العام الجامعي 2026/2027.',
+  'personality.path.missing': 'حدّد مسارك (أكاديمي / مهني BTEC / الخطة القديمة) ليعرض التقرير ما يفتحه لك جدول مجلس التعليم العالي فعليّاً.',
+  'personality.path.average': 'احتساب معدّلك: 30% امتحان الصف الحادي عشر + 70%',
+  'personality.path.set': 'حدّد مسارك',
+  'personality.path.signUp': 'أنشئ حساباً لتحديد مسارك',
+  'personality.path.noneOpen': 'لا يقابل أيّ تخصّص من تخصّصات هذا التطبيق ما يفتحه مسارك في الجدول الرسميّ. قائمة الكليّات الرسميّة لمسارك أوسع من جدول التطبيق — راجعها في صفحة «حقلي وكلياتي».',
+  'personality.blocked.title': 'ميول قويّة لا يفتحها مسارك',
+  'personality.blocked.sub': 'تخصّصات جاءت ضمن أعلى خمس نتائج في ميولك، لكنّ جدول مجلس التعليم العالي لا يسمح بها لمسارك. نعرضها لأنّها ميل حقيقي لديك، ولا نرشّحها لأنّها ليست متاحة لك.',
+  'personality.blocked.note': 'هذا قيد مسار وليس قيد معدّل: أيّ معدّل مهما ارتفع لا يفتح كليّة لا يسمح بها جدول المسار. تغيير المسار قرار يُتّخذ في نهاية الصف التاسع.',
 
   // ── Average vs. acceptance average ──
   'personality.reach.within': 'ضمن متناول معدّلك',
@@ -163,6 +180,7 @@ export const personalityAr = {
   'personality.grade.signUp': 'أنشئ حساباً لإضافة معدّلك',
   'personality.reachable.title': 'تخصّصات يبلغها معدّلك',
   'personality.reachable.sub': 'من جدول التطبيق، مرتّبة حسب انسجامها مع ميولك',
+  'personality.reachable.pathNote': 'ومقتصرة كذلك على ما يفتحه مسارك في الجدول الرسميّ.',
   'personality.reachable.none': 'لا يبلغ معدّلك المعدّل الاسترشادي لأيّ تخصّص في جدول التطبيق. هذا لا يعني إغلاق الباب: راجع صفحة «المسارات البديلة» للدبلوم المهني وشهادات BTEC وجسور الانتقال إلى البكالوريوس.',
 
   // ── AI narrative ──
@@ -174,7 +192,7 @@ export const personalityAr = {
   'personality.ai.stopped': 'أوقفتَ توليد التحليل.',
   'personality.ai.retry': 'إعادة توليد التحليل',
   'personality.ai.unavailable': 'تعذّر توليد التحليل النصّي الآن — إمّا لا يوجد اتّصال أو النماذج مشغولة. التقرير أعلاه كامل ومحسوب على هذا الجهاز، ولا يحتاج إنترنت.',
-  'personality.ai.grounded': 'يقرأ النموذج جدول نقاطك وقائمة التخصّصات الخمسة أعلاه فقط، ولا يملك أرقاماً أخرى.',
+  'personality.ai.grounded': 'يقرأ النموذج جدول نقاطك، وقائمة التخصّصات المعتمدة أعلاه، وصفّ مسارك من جدول مجلس التعليم العالي، ولا يملك أرقاماً أخرى ولا يستطيع ترشيح تخصّص لا يفتحه مسارك.',
 
   // ── Methodology & disclaimer ──
   'personality.method.title': 'المنهجيّة',
@@ -311,7 +329,7 @@ export const personalityEn = {
   'personality.report.tally.adaptive': 'Follow-up',
   'personality.report.tally.total': 'Total',
   'personality.report.radar': 'Interests map',
-  'personality.report.shortlist': 'The five closest-matching majors',
+  'personality.report.shortlist': 'The majors closest to your interests',
   'personality.report.rank': '#',
   'personality.report.major': 'Major',
   'personality.report.fit': 'Match index',
@@ -322,8 +340,25 @@ export const personalityEn = {
   'personality.report.savedGuest': 'A guest report lasts for this session only — create an account if you want it saved.',
   'personality.report.previous': 'This is your most recent report saved on this device.',
   'personality.report.profile': 'Student details used',
-  'personality.report.branch': 'Tawjihi branch',
+  'personality.report.path': 'Your study path',
   'personality.report.none': 'Not set',
+
+  // ── The Higher Education Council table: what this path opens ──
+  'personality.path.open': 'Open to your path',
+  'personality.path.technical': 'Technical/applied bachelor',
+  'personality.path.closed': 'Not open to your path',
+  'personality.path.unchecked': 'Not checked',
+  'personality.path.filtered': 'The list is limited to what your path opens in the Higher Education Council’s table of permitted colleges (decision of 8 September 2024, effective 2026/2027).',
+  'personality.path.unfiltered': 'You have not set your path, so this list is ordered by your interests alone and no major has been checked for eligibility.',
+  'personality.path.source': 'Source: the Higher Education Council decision annex listing the colleges permitted for each track and field, dated 8 September 2024 and effective from the 2026/2027 academic year.',
+  'personality.path.missing': 'Set your path (academic / vocational BTEC / previous plan) and the report will show what the Higher Education Council table actually opens to you.',
+  'personality.path.average': 'How your average is built: 30% the grade-11 national exam + 70%',
+  'personality.path.set': 'Set your path',
+  'personality.path.signUp': 'Create an account to set your path',
+  'personality.path.noneOpen': 'None of this app’s majors match what your path opens in the official table. The official college list for your path is wider than the app’s table — see the “My field and colleges” screen.',
+  'personality.blocked.title': 'Strong interests your path does not open',
+  'personality.blocked.sub': 'These landed in your top five on interest, but the Higher Education Council table does not allow them for your path. They are shown because the interest is real, and not recommended because they are not available to you.',
+  'personality.blocked.note': 'This is a track constraint, not an average constraint: no average, however high, opens a college the track table does not list. Changing track is a decision taken at the end of grade 9.',
 
   // ── Average vs. acceptance average ──
   'personality.reach.within': 'Within reach of your average',
@@ -339,6 +374,7 @@ export const personalityEn = {
   'personality.grade.signUp': 'Create an account to add your average',
   'personality.reachable.title': 'Majors your average reaches',
   'personality.reachable.sub': 'From the app table, ordered by how well they match your interests',
+  'personality.reachable.pathNote': 'And limited to what your path opens in the official table.',
   'personality.reachable.none': 'Your average does not reach the indicative acceptance average of any major in the app table. That does not close the door: see the Alternative Paths page for vocational diplomas, BTEC qualifications and bridging routes into a bachelor’s degree.',
 
   // ── AI narrative ──
@@ -350,7 +386,7 @@ export const personalityEn = {
   'personality.ai.stopped': 'You stopped the analysis.',
   'personality.ai.retry': 'Generate the analysis again',
   'personality.ai.unavailable': 'The written analysis could not be generated right now — either there is no connection or the models are busy. The report above is complete, computed on this device, and needs no internet.',
-  'personality.ai.grounded': 'The model reads only your score table and the five majors listed above; it holds no other figures.',
+  'personality.ai.grounded': 'The model reads your score table, the approved list of majors above, and your own row of the Higher Education Council table. It holds no other figures and cannot recommend a major your path does not open.',
 
   // ── Methodology & disclaimer ──
   'personality.method.title': 'Methodology',
