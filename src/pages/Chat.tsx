@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronDown,
   Compass,
   FileText,
-  KeyRound,
   MessageSquare,
   RotateCcw,
   Send,
-  Sparkles,
   Square,
   Trash2,
   WifiOff,
@@ -19,10 +16,9 @@ import { useLang } from '../i18n/LangContext';
 import { useAuth } from '../context/AuthContext';
 import { aiStatus, askAi } from '../lib/ai';
 import type { AiProfileContext } from '../lib/ai';
-import { DEFAULT_MODEL, MODEL_OPTIONS, modelOption, preferredModel, selectModel } from '../lib/ai/config';
+import { DEFAULT_MODEL, modelOption, preferredModel } from '../lib/ai/config';
 import { readStudyPath, safeCity, safeGrade } from '../lib/ai/student';
 import { isPathComplete, pathLabel } from '../lib/tawjihi';
-import { hasKeyOverride, setKeyOverride } from '../lib/openrouter';
 import { recordActivity } from '../lib/activity';
 
 interface ChatTurn {
@@ -138,11 +134,11 @@ function ChatThread({ storageKey, profile }: { storageKey: string; profile: AiPr
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [notice, setNotice] = useState<'local' | 'stopped' | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [keyDraft, setKeyDraft] = useState('');
-  const [model, setModel] = useState<string>(() => preferredModel());
-  const [configured, setConfigured] = useState<boolean>(() => aiStatus().configured);
+  // The model and the key are settings the app decides, not the reader: the
+  // chain tries the free Gemma first and falls back on its own.
+  const model = preferredModel();
+  const configured = aiStatus().configured;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -268,16 +264,7 @@ function ChatThread({ storageKey, profile }: { storageKey: string; profile: AiPr
     }
   }, [storageKey]);
 
-  const applyKeyDraft = (value: string) => {
-    setKeyDraft(value);
-    setKeyOverride(value);
-    setConfigured(aiStatus().configured);
-  };
 
-  const applyModel = (value: string) => {
-    selectModel(value);
-    setModel(preferredModel());
-  };
 
   const modelLabel = (id: string): string => {
     const option = modelOption(id);
@@ -312,77 +299,6 @@ function ChatThread({ storageKey, profile }: { storageKey: string; profile: AiPr
       />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden px-4 pt-4 pb-40 space-y-3">
-        {/* Engine settings */}
-        <div className="gov-card p-3">
-          <button
-            type="button"
-            onClick={() => setShowSettings((v) => !v)}
-            className="w-full flex items-center gap-2 text-start min-h-[44px]"
-            aria-expanded={showSettings}
-          >
-            <span
-              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                configured ? 'bg-gov-green/10 text-gov-green' : 'bg-gov-bg text-gov-navy'
-              }`}
-            >
-              {configured ? <Sparkles size={16} aria-hidden="true" /> : <KeyRound size={16} aria-hidden="true" />}
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block text-xs font-bold text-gov-ink">
-                {configured ? t('ai.settings.on') : t('ai.settings.off')}
-              </span>
-              <span className="block text-[10px] text-gov-muted mt-0.5 truncate">
-                {configured ? modelLabel(model) : t('ai.settings.offDesc')}
-              </span>
-            </span>
-            <ChevronDown
-              size={16}
-              aria-hidden="true"
-              className={`text-gov-muted transition-transform ${showSettings ? 'rotate-180' : ''}`}
-            />
-          </button>
-
-          {showSettings && (
-            <div className="mt-3 pt-3 border-t border-gov-line space-y-3">
-              <div>
-                <label className="gov-label" htmlFor="ai-model">
-                  {t('ai.settings.modelLabel')}
-                </label>
-                <select
-                  id="ai-model"
-                  value={model}
-                  onChange={(e) => applyModel(e.target.value)}
-                  className="gov-input min-h-[44px]"
-                >
-                  {MODEL_OPTIONS.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {modelLabel(option.id)}
-                    </option>
-                  ))}
-                </select>
-                <p className="gov-hint leading-relaxed">{t('ai.settings.chainNote')}</p>
-              </div>
-
-              <div>
-                <label className="gov-label" htmlFor="ai-key">
-                  {t('ai.settings.keyLabel')}
-                </label>
-                <input
-                  id="ai-key"
-                  type="password"
-                  dir="ltr"
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder={hasKeyOverride() || configured ? t('ai.settings.keySet') : t('ai.settings.keyEmpty')}
-                  value={keyDraft}
-                  onChange={(e) => applyKeyDraft(e.target.value)}
-                  className="gov-input min-h-[44px] text-start"
-                />
-                <p className="gov-hint leading-relaxed">{t('ai.settings.quota')}</p>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Which row of the Ministry's table this conversation is grounded in */}
         <div className="gov-card p-3">

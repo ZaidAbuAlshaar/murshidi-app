@@ -20,7 +20,6 @@ import {
 
 const ACTIVITY_PREFIX = 'murshidi.activity.';
 const REPORT_PREFIX = 'murshidi.riasec.';
-const CHAT_PREFIX = 'murshidi.chat.';
 const SEEDED_FLAG = 'murshidi.demo.v2';
 
 /** Academic track, science-and-technology field: the most instructive path to
@@ -116,35 +115,6 @@ function interestsReport() {
   };
 }
 
-/** One exchange with the advisor, so the chat screen is not an empty box. */
-function chatHistory() {
-  const base = new Date(daysAgo(4, 15)).getTime();
-  return [
-    {
-      id: 'demo-q1',
-      role: 'user',
-      text: 'معدّلي 87 وحقلي العلوم والتكنولوجيا. بقدر أدرس طب؟',
-      at: base,
-    },
-    {
-      id: 'demo-a1',
-      role: 'assistant',
-      text:
-        'القيد عندك ليس المعدّل — بل الحقل.\n\n' +
-        '1) الطبّ البشري مدرج في جدول مجلس التعليم العالي تحت **الحقل الصحّي** فقط، ولا يظهر ضمن قوائم ' +
-        'حقل العلوم والتكنولوجيا. فمعدّل 87 لا يغيّر هذا، ولا حتى معدّل أعلى.\n' +
-        '2) ما يفتحه حقلك فعلاً: العلوم، تكنولوجيا المعلومات، علوم الحاسوب، الذكاء الاصطناعي، الزراعة، ' +
-        'تخصّصات التغذية وعلم الغذاء.\n' +
-        '3) الحدّ الأدنى المنشور للالتحاق بتخصّصات تكنولوجيا المعلومات والذكاء الاصطناعي هو 75%، ومعدّلك فوقه.\n' +
-        '4) لو الطبّ هو الهدف فعلاً، فالقرار يعود لتغيير الحقل، لا لرفع المعدّل — راجع مدرستك في ذلك.\n\n' +
-        'افتح «حقلي وكليّاتي» لتقرأ القائمة كما نشرتها الوزارة، والحاسبة لمقارنة الكلفة والعائد.',
-      at: base + 4000,
-      model: 'demo',
-      source: 'local',
-    },
-  ];
-}
-
 /**
  * Seeds the demo identity if — and only if — this device has no account yet.
  * Returns the account when it seeds one, null when it leaves things alone.
@@ -168,7 +138,6 @@ export async function seedDemoIdentity(): Promise<Account | null> {
 
   write(`${ACTIVITY_PREFIX}${account.id}`, activityStore());
   write(`${REPORT_PREFIX}${account.id}`, interestsReport());
-  write(`${CHAT_PREFIX}${account.id}`, chatHistory());
   try {
     localStorage.setItem(SEEDED_FLAG, '1');
   } catch {
