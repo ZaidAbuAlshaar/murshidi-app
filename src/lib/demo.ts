@@ -158,7 +158,7 @@ export async function seedDemoIdentity(): Promise<Account | null> {
 
   const account = await seedAccount({
     id: DEMO_ACCOUNT_ID,
-    name: 'عبد الرحمن الحيموني',
+    name: 'عبد الرحمن الهيموني',
     grade: DEMO_GRADE,
     city: 'عمّان',
     path: DEMO_PATH,

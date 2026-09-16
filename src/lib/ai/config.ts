@@ -4,7 +4,6 @@
 //  - google/gemma-4-31b-it:free      exists, 262k context, $0 in / $0 out.
 //                                    Returned HTTP 429 "temporarily rate-limited
 //                                    upstream" from the shared Google AI Studio pool.
-//  - google/gemma-4-26b-a4b-it:free  exists, same free pool, also 429 at the time.
 //  - google/gemma-4-31b-it           paid ($0.09/M in, $0.34/M out), answered normally.
 //
 // That is why the chain exists and why the offline layer at the end of it is not
@@ -26,7 +25,6 @@ export const DEFAULT_MODEL = 'google/gemma-4-31b-it:free';
 
 export const MODEL_OPTIONS: ModelOption[] = [
   { id: 'google/gemma-4-31b-it:free', free: true, shortLabel: 'Gemma 4 · 31B' },
-  { id: 'google/gemma-4-26b-a4b-it:free', free: true, shortLabel: 'Gemma 4 · 26B A4B' },
   { id: 'google/gemma-4-31b-it', free: false, shortLabel: 'Gemma 4 · 31B' },
 ];
 
