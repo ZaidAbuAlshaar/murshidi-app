@@ -9,10 +9,12 @@ interface Props {
 // Murshidi small inline logo (mark only) — matches the full SVG logo
 export default function MizanLogo({ size = 48, showText = false, variant = 'mark' }: Props) {
   const { t } = useLang();
+  const base = import.meta.env.BASE_URL || '/';
+  const logoSrc = `${base}favicon.svg`.replace(/\/{2,}/g, '/');
   return (
     <div className="flex items-center gap-2.5">
       <img
-        src="/favicon.svg"
+        src={logoSrc}
         alt={t('app.name')}
         width={size}
         height={size}
