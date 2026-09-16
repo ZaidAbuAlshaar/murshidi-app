@@ -79,24 +79,22 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactElemen
   // prepared demo profile, so a live demo opens on a working app instead of an
   // empty form. A device that already has an account is never touched.
   useEffect(() => {
-    if (session.ready) return;
     let cancelled = false;
     seedDemoIdentity()
       .then((account) => {
         if (cancelled) return;
-        setSession(
-          account
-            ? { user: toProfile(account), isGuest: false, ready: true }
-            : SIGNED_OUT,
-        );
+        // A null result means the demo was already seeded on this device, so
+        // whatever session is on screen is the right one — leave it alone.
+        if (account) setSession({ user: toProfile(account), isGuest: false, ready: true });
+        else setSession((current) => (current.ready ? current : SIGNED_OUT));
       })
       .catch(() => {
-        if (!cancelled) setSession(SIGNED_OUT);
+        if (!cancelled) setSession((current) => (current.ready ? current : SIGNED_OUT));
       });
     return () => {
       cancelled = true;
     };
-  }, [session.ready]);
+  }, []);
 
   const signIn = useCallback(async (name: string, password: string): Promise<AuthResult> => {
     const result = await signInAccount(name, password);

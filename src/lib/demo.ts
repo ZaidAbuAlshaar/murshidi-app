@@ -21,7 +21,7 @@ import {
 const ACTIVITY_PREFIX = 'murshidi.activity.';
 const REPORT_PREFIX = 'murshidi.riasec.';
 const CHAT_PREFIX = 'murshidi.chat.';
-const SEEDED_FLAG = 'murshidi.demo.v1';
+const SEEDED_FLAG = 'murshidi.demo.v2';
 
 /** Academic track, science-and-technology field: the most instructive path to
  *  open on, because it opens computing and closes medicine — so the eligibility

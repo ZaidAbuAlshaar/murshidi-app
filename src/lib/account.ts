@@ -437,8 +437,7 @@ export interface SeedInput {
  * person created is ever touched.
  */
 export async function seedAccount(input: SeedInput): Promise<Account | null> {
-  const users = getUsers();
-  if (users.length > 0) return null;
+  const others = getUsers().filter((u) => u.id !== input.id);
   const account: Account = {
     id: input.id,
     name: input.name.trim(),
@@ -448,7 +447,9 @@ export async function seedAccount(input: SeedInput): Promise<Account | null> {
     createdAt: input.createdAt,
     passHash: await hashPassword(DEMO_PASSWORD),
   };
-  if (!write(USERS_KEY, [account]) || !write(SESSION_KEY, account.id)) return null;
+  // Upsert by id and keep every other account: a visitor who made their own is
+  // not deleted, they are just not the active session any more.
+  if (!write(USERS_KEY, [account, ...others]) || !write(SESSION_KEY, account.id)) return null;
   // Deliberately NOT marking onboarding complete: the introduction slides are
   // part of what a demo shows, so the first launch still plays them and only
   // then lands on the app — already signed in.
