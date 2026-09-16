@@ -348,6 +348,11 @@ export function getUsers(): Account[] {
   return users.map(normalise).filter((u): u is Account => u !== null);
 }
 
+/** True when this device already holds an account a person created or seeded. */
+export function hasAnyAccount(): boolean {
+  return getUsers().length > 0;
+}
+
 export function getSessionAccount(): Account | null {
   const id = read<string | null>(SESSION_KEY, null);
   if (!id) return null;
@@ -410,6 +415,47 @@ export function validateGrade(value: string): { ok: boolean; grade: number | nul
   const n = Number(trimmed);
   if (!Number.isFinite(n) || n < 0 || n > 100) return { ok: false, grade: null };
   return { ok: true, grade: Math.round(n * 100) / 100 };
+}
+
+/** The seeded demo identity — see src/lib/demo.ts for why it exists. */
+export const DEMO_ACCOUNT_ID = 'u_demo_murshidi';
+/** Its password, printed on the profile screen so a demo can be signed back into. */
+export const DEMO_PASSWORD = 'murshidi2026';
+
+export interface SeedInput {
+  id: string;
+  name: string;
+  grade: number | null;
+  city: string;
+  path: StudyPath | null;
+  createdAt: string;
+}
+
+/**
+ * Writes a ready-made account and signs into it, but only on a device that has
+ * no account at all. Returns null the moment a real one exists, so nothing a
+ * person created is ever touched.
+ */
+export async function seedAccount(input: SeedInput): Promise<Account | null> {
+  const users = getUsers();
+  if (users.length > 0) return null;
+  const account: Account = {
+    id: input.id,
+    name: input.name.trim(),
+    grade: input.grade,
+    city: input.city,
+    path: sanitizePath(input.path),
+    createdAt: input.createdAt,
+    passHash: await hashPassword(DEMO_PASSWORD),
+  };
+  if (!write(USERS_KEY, [account]) || !write(SESSION_KEY, account.id)) return null;
+  try {
+    localStorage.setItem(ONBOARDED_KEY, '1');
+  } catch {
+    /* onboarding flag is best-effort */
+  }
+  setGuestMode(false);
+  return account;
 }
 
 export async function signUp(input: SignUpInput): Promise<AuthResult> {

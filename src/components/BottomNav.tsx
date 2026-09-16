@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calculator, BarChart3, Compass, MessageCircle, User } from 'lucide-react';
+import { Home, Calculator, BarChart3, MessageCircle, User } from 'lucide-react';
 import { useKeyboardOpen } from '../hooks/useKeyboardOpen';
 import { useLang } from '../i18n/LangContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +11,6 @@ import type { TranslationKey } from '../i18n/translations';
 // would wrap and push the bar out of shape.
 const items: { to: string; key: TranslationKey; icon: typeof Home }[] = [
   { to: '/home', key: 'nav.home', icon: Home },
-  { to: '/field', key: 'field.nav', icon: Compass },
   { to: '/roi', key: 'nav.calculator', icon: Calculator },
   { to: '/market', key: 'nav.market', icon: BarChart3 },
   { to: '/chat', key: 'nav.consultation', icon: MessageCircle },

@@ -164,7 +164,7 @@ export default function Home() {
             </div>
           )}
 
-          {pathKnown && path?.track !== 'legacy' && (
+          {pathKnown && (
             <button onClick={() => navigate('/field')} className="btn-primary w-full mt-3">
               {t('tools.home.field.cta')}
               <ChevronEnd size={16} />

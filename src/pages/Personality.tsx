@@ -1,17 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Loader2,
-  RefreshCcw,
-  RotateCcw,
-  Sparkles,
-  Square,
-  Undo2,
-  WifiOff,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Loader2, Printer, RefreshCcw, RotateCcw, Sparkles, Square, Undo2, WifiOff } from 'lucide-react';
 import { PolarGrid, PolarAngleAxis, RadarChart, Radar, ResponsiveContainer } from 'recharts';
 import PageHeader from '../components/PageHeader';
 import SourceNote from '../components/SourceNote';
@@ -647,14 +636,26 @@ function ReportView({
         title={t('personality.report.title')}
         subtitle={t('personality.report.subtitle')}
         right={
-          <button
-            type="button"
-            onClick={onRetake}
-            aria-label={t('personality.report.retake')}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-gov-line text-gov-body hover:bg-gov-bg-soft"
-          >
-            <RefreshCcw size={14} />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {/* The browser's own print dialog saves to PDF on Android and desktop
+                alike, so the report leaves the app without a PDF library. */}
+            <button
+              type="button"
+              onClick={() => window.print()}
+              aria-label={t('personality.report.print')}
+              className="no-print flex h-11 w-11 items-center justify-center rounded-md border border-gov-line text-gov-body hover:bg-gov-bg-soft"
+            >
+              <Printer size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={onRetake}
+              aria-label={t('personality.report.retake')}
+              className="no-print flex h-11 w-11 items-center justify-center rounded-md border border-gov-line text-gov-body hover:bg-gov-bg-soft"
+            >
+              <RefreshCcw size={15} />
+            </button>
+          </div>
         }
       />
 

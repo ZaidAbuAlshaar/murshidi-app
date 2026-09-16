@@ -10,6 +10,7 @@
 // Do not reintroduce them, and do not upgrade any wording below.
 
 export const personalityAr = {
+  'personality.report.print': 'طباعة التقرير أو حفظه PDF',
   // ── Page chrome ──
   'personality.title': 'اختبار الميول الأكاديمي',
   'personality.subtitle': 'استكشاف ميول بأسلوب RIASEC — إرشادي',
@@ -204,6 +205,7 @@ export const personalityAr = {
 } as const;
 
 export const personalityEn = {
+  'personality.report.print': 'Print or save as PDF',
   // ── Page chrome ──
   'personality.title': 'Interests Test',
   'personality.subtitle': 'A RIASEC-style interests reflection — guidance only',

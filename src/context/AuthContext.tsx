@@ -1,19 +1,28 @@
 import {
-  createContext, useCallback, useContext, useMemo, useState,
-  type ReactElement, type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactElement,
+  type ReactNode,
 } from 'react';
 import {
   deleteAccount as deleteStoredAccount,
   getSessionUser,
+  hasAnyAccount,
   isGuestMode,
   setGuestMode,
   signIn as signInAccount,
   signOut as signOutAccount,
   signUp as signUpAccount,
+  toProfile,
   updateAccount,
 } from '../lib/account';
 import type { AuthResult, SignUpInput, StudentProfile } from '../lib/account';
 import { clearIdentity } from '../lib/activity';
+import { seedDemoIdentity } from '../lib/demo';
 
 export type {
   AcademicFieldId, AuthResult, LegacyBranchId, SignUpInput, StudentProfile,
@@ -52,7 +61,12 @@ const SIGNED_OUT: SessionState = { user: null, isGuest: false, ready: true };
  */
 function readSession(): SessionState {
   const stored = getSessionUser();
-  return { user: stored, isGuest: stored ? false : isGuestMode(), ready: true };
+  if (stored) return { user: stored, isGuest: false, ready: true };
+  const guest = isGuestMode();
+  // Not signed in and not a guest: a demo identity may still be seeded on the
+  // first launch of a fresh device, so hold `ready` until that has been decided
+  // rather than flashing the sign-in screen for one frame.
+  return { user: null, isGuest: guest, ready: guest || hasAnyAccount() };
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -60,6 +74,29 @@ const AuthContext = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }): ReactElement {
   const [session, setSession] = useState<SessionState>(readSession);
   const { user, isGuest, ready } = session;
+
+  // First launch on a device that has never had an account lands signed into a
+  // prepared demo profile, so a live demo opens on a working app instead of an
+  // empty form. A device that already has an account is never touched.
+  useEffect(() => {
+    if (session.ready) return;
+    let cancelled = false;
+    seedDemoIdentity()
+      .then((account) => {
+        if (cancelled) return;
+        setSession(
+          account
+            ? { user: toProfile(account), isGuest: false, ready: true }
+            : SIGNED_OUT,
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setSession(SIGNED_OUT);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session.ready]);
 
   const signIn = useCallback(async (name: string, password: string): Promise<AuthResult> => {
     const result = await signInAccount(name, password);
