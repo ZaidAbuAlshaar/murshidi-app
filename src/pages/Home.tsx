@@ -4,7 +4,7 @@ import {
   TrendingUp, GraduationCap, Wallet, ChevronLeft, ChevronRight, FileText,
 } from 'lucide-react';
 import OfficialHeader from '../components/OfficialHeader';
-import { jobMarketTrends, nationalStats } from '../data/majors';
+import { jobMarketTrends, majorsData, nationalStats } from '../data/majors';
 import { useLang } from '../i18n/LangContext';
 import type { TranslationKey } from '../i18n/translations';
 import { getSessionUser } from '../lib/account';
@@ -60,42 +60,63 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Primary CTA — polished */}
+      {/* Hook */}
       <div className="p-4">
-        <div className="gov-card overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-gov-navy/5 via-transparent to-gov-gold/3" />
-          <div className="relative p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gov-navy/90 flex items-center justify-center text-white shrink-0 shadow-lg">
-                <Calculator size={22} strokeWidth={2.2} />
+        <div className="overflow-hidden rounded-2xl bg-gov-navy text-white shadow-[0_12px_32px_-12px_rgba(1,48,112,0.55)]">
+          <div className="h-1 bg-gov-gold" />
+          <div className="p-5">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-px bg-gov-gold" />
+              <p className="text-[11px] font-bold text-gov-gold tracking-wide">
+                {lang === 'ar' ? 'دليلك لاختيار التخصّص' : 'Your major-choice guide'}
+              </p>
+              <span className="gov-badge gov-badge-success shrink-0 ms-auto">{t('pages.home.recommended')}</span>
+            </div>
+            <h2 className="text-[22px] font-bold leading-snug mt-2.5">
+              {t('pages.home.startCalc')}
+            </h2>
+            <p className="text-[13px] text-white/75 leading-relaxed mt-1.5">
+              {t('pages.home.startCalcDesc')}
+            </p>
+
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <div className="rounded-xl bg-white/10 px-2 py-2.5 text-center">
+                <p className="text-lg font-bold tabular leading-none">{majorsData.length}</p>
+                <p className="text-[10px] text-white/65 mt-1.5 leading-tight">
+                  {lang === 'ar' ? 'تخصّصًا بالأرقام' : 'majors in numbers'}
+                </p>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 className="text-sm font-bold text-gov-ink leading-tight">{t('pages.home.startCalc')}</h3>
-                  <span className="gov-badge gov-badge-success shrink-0">{t('pages.home.recommended')}</span>
-                </div>
-                <p className="text-[12px] text-gov-body leading-relaxed">{t('pages.home.startCalcDesc')}</p>
-                <div className="flex items-center gap-3 mt-3 flex-wrap">
-                  <button
-                    onClick={() => navigate('/roi')}
-                    className="btn-primary min-h-[44px] px-4 flex items-center gap-1.5"
-                  >
-                    {t('btn.openCalculator')}
-                    <ChevronEnd size={14} />
-                  </button>
-                  <button
-                    onClick={() => navigate('/personality')}
-                    className="text-[12px] font-semibold text-gov-navy hover:underline whitespace-nowrap"
-                  >
-                    {t('pages.home.orPersonality')}
-                  </button>
-                </div>
+              <div className="rounded-xl bg-white/10 px-2 py-2.5 text-center">
+                <p className="text-lg font-bold tabular leading-none">
+                  {nationalStats.jobsScraped.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}
+                </p>
+                <p className="text-[10px] text-white/65 mt-1.5 leading-tight">
+                  {lang === 'ar' ? 'إعلان وظيفي محلّل' : 'job ads analysed'}
+                </p>
+              </div>
+              <div className="rounded-xl bg-white/10 px-2 py-2.5 text-center">
+                <p className="text-lg font-bold tabular leading-none text-gov-gold">
+                  +{jobMarketTrends.topHiring[0].change}%
+                </p>
+                <p className="text-[10px] text-white/65 mt-1.5 leading-tight truncate">
+                  {jobMarketTrends.topHiring[0].name}
+                </p>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-gov-line flex items-center gap-1.5 text-[10px] text-gov-muted leading-relaxed">
-              <FileText size={11} className="shrink-0" />
-              <span>{t('pages.home.calcSources')}</span>
-            </div>
+
+            <button
+              onClick={() => navigate('/roi')}
+              className="w-full min-h-[48px] mt-4 rounded-xl bg-gov-gold text-gov-navy text-[15px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+            >
+              <Calculator size={18} strokeWidth={2.4} />
+              {t('btn.openCalculator')}
+            </button>
+            <button
+              onClick={() => navigate('/personality')}
+              className="w-full mt-1.5 py-2 text-[13px] font-semibold text-white/80 hover:text-white hover:underline"
+            >
+              {t('pages.home.orPersonality')}
+            </button>
           </div>
         </div>
       </div>
